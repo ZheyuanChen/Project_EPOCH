@@ -236,3 +236,5 @@ ffmpeg/
 
 tmp
 tmp/
+
+*.sdf
