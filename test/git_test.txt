@@ -2,3 +2,4 @@
 
 This is a line
 This is a line that will be deleted later.
+This is a line sandwiching the line that will be deleted later.
