@@ -1,0 +1,3 @@
+[submodule "EPOCH_workshop_2025"]
+	path = EPOCH_workshop_2025
+	url = https://github.com/epochpic/EPOCH_workshop_2025.git
