@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: sdf
+Version: 1.0
+Summary: Python module for processing SDF files
+Home-page: http://github.com/Warwick-Plasma/SDF.git
+Author-email: Keith Bennett <k.bennett@warwick.ac.uk>
+License-File: LICENSE
+License-File: LICENSE_README.txt
+Requires-Dist: numpy
+Dynamic: home-page
+Dynamic: license-file

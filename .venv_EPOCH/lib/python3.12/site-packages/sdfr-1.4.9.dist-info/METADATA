@@ -1,0 +1,12 @@
+Metadata-Version: 2.2
+Name: sdfr
+Version: 1.4.9
+Summary: Python module for processing SDF files
+Author-Email: Keith Bennett <k.bennett@warwick.ac.uk>
+Requires-Dist: numpy
+Description-Content-Type: text/markdown
+
+# Python reader for SDF files
+
+The package reads files written as SDF (Self-Describing Format). This
+is a format used by several scientific simulation codes.

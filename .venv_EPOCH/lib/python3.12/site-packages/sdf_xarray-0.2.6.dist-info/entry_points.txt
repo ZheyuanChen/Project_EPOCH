@@ -1,0 +1,3 @@
+[xarray.backends]
+sdf_engine = sdf_xarray:SDFEntrypoint
+
