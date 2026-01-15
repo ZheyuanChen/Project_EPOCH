@@ -1,4 +1,8 @@
-[Project_EPOCH]
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "Project_EPOCH"
 version = "0.1.0"
 authors = [
@@ -6,18 +10,21 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.10"
+
 dependencies = [
-	"matplotlib >= 3.10.0",
 	"epydeck>=1.0.1",
 	"epyscan>=0.3.0",
 	"matplotlib>=3.10.8",
 	"matplotlib-inline>=0.2.1",
 	"numpy>=2.4.1",
 	"packaging>=25.0",
-	"pandas>=2.3.3"
+	"pandas>=2.3.3",
 	"pip>=24.0",
 	"scipy>=1.17.0",
 	"sdf-xarray>=0.4.0",
 	"sdfr>=1.4.11",
 	"xarray>=2025.12.0",
 ]
+
+[project.scripts]
+save_gif = "visualisation.animate:animate_plot2d_from_directory"
