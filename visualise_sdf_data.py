@@ -2,8 +2,10 @@ import xarray as xr
 import sdf_xarray as sdfxr
 import matplotlib.pyplot as plt
 import sdf_helper as sh
+from matplotlib.animation import PillowWriter
 import sdf
-from matplotlib.animation import FuncAnimation
+from matplotlib import animation
+
 import os
 from matplotlib.colors import LogNorm
 from matplotlib.backend_bases import KeyEvent
@@ -140,16 +142,19 @@ def animate_plot2d_from_directory(directory_path, duration=0.1, verbose=False):
     sh.plot2d(var0, figure=fig, subplot=ax)
 
     # ----------------------------------------------------------
-    # 4. Animation over all SDF files
-    # ----------------------------------------------------------
-    plt.ion()
-    for i, data in enumerate(data_list):
-        var = getattr(data, variable_name)
-        plt.clf()
-        sh.plot2d(var,interpolation='bicubic')
-        plt.pause(duration)   # adjust speed
-    plt.ioff()
-    plt.show()
+# ----------------------------------------------------------
+# 4. Animation over all SDF files (saved to GIF)
+# ----------------------------------------------------------
+
+    writer = PillowWriter(fps=int(1 / duration))
+
+    with writer.saving(fig, "animation.gif", dpi=150):
+        for i, data in enumerate(data_list):
+            plt.clf()
+            var = getattr(data, variable_name)
+            sh.plot2d(var, interpolation='bicubic')
+            plt.title(f"Frame {i}")
+            writer.grab_frame()
 
 def animate_plot2d_from_directory_manual_control(directory_path,verbose=False):
     """
@@ -385,9 +390,9 @@ def animate_plot2d_with_slider(directory_path):
     plt.show()
 
 # Load a single SDF file using xarray, sdf_helper, or sdf
-ds = xr.open_dataset("./test_2d/0001.sdf")
-data_sh = sh.getdata(57,'./mini_project_plasma_slab/data_10pc/data_10pc_crit_density')
-data_sdf = sdf.read("./test_2d/0001.sdf")
+#ds = xr.open_dataset("./test_2d/0001.sdf")
+#data_sh = sh.getdata(57,'./mini_project_plasma_slab/data_10pc/data_10pc_crit_density')
+#data_sdf = sdf.read("./test_2d/0001.sdf")
 
 
 # List variables using sdf_helper. This one is more comprehensive and contains everything
@@ -405,11 +410,11 @@ data_sdf = sdf.read("./test_2d/0001.sdf")
 # sh.plot_auto(data_sh.Derived_Average_Particle_Energy_Electron) # example of plotting a specific variable
 
 
-#animate_plot2d_from_directory('./test_2d', duration=0.05) # uncomment to use animation over directory
+animate_plot2d_from_directory('./test_2d', duration=0.05) # uncomment to use animation over directory
 
 #animate_plot2d_from_directory_manual_control('./test_2d') # uncomment to use manual control animation over directory
 
-animate_plot2d_with_slider('./EPOCH_workshop_2025/particles_5_self_heating')
+#animate_plot2d_with_slider('./test_2d')
 plt.show(block=True) # keep plots open
 
 # List variables using sdf. For some reason this does not show all variables
