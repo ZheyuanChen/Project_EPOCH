@@ -404,7 +404,7 @@ def save_2d_animation_to_gif(duration=0.1, verbose=False):
     )
 
     parser.add_argument(
-        "--filename",
+        "--input-directory",
         type=str,
         default= None,
         help="Input filename",
@@ -425,21 +425,21 @@ def save_2d_animation_to_gif(duration=0.1, verbose=False):
     )
 
     parser.add_argument(
-        "--variable name to be animated",
+        "--variable-name-to-be-animated",
         type=str,
         default=None,
         help="Variable name to be animated.",
     )
 
     args = parser.parse_args()
-    filename = args.filename
+    input_directory = args.input_directory
     gif_filename = args.gif_filename
     verbose = args.verbose
     variable_name = args.variable_name_to_be_animated
-    if filename is None:
+    if input_directory is None:
         directory_path = input("Enter the directory path containing SDF files: ").strip()
     else:
-        directory_path = filename
+        directory_path = input_directory
     
 
     # ----------------------------------------------------------
@@ -480,7 +480,7 @@ def save_2d_animation_to_gif(duration=0.1, verbose=False):
 
     writer = PillowWriter(fps=int(1 / duration))
 
-    with writer.saving(fig, "animation.gif", dpi=150):
+    with writer.saving(fig, gif_filename, dpi=150):
         for i, data in enumerate(data_list):
             plt.clf()
             var = getattr(data, variable_name)

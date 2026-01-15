@@ -1,10 +1,10 @@
 #!/home/pnd531/Desktop/Project_EPOCH/.venv_EPOCH/bin/python3
 # -*- coding: utf-8 -*-
 import sys
-from visualisation.animate import animate_plot2d_from_directory
+from visualisation.animate import save_2d_animation_to_gif
 if __name__ == "__main__":
     if sys.argv[0].endswith("-script.pyw"):
         sys.argv[0] = sys.argv[0][:-11]
     elif sys.argv[0].endswith(".exe"):
         sys.argv[0] = sys.argv[0][:-4]
-    sys.exit(animate_plot2d_from_directory())
+    sys.exit(save_2d_animation_to_gif())
