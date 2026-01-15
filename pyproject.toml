@@ -1,6 +1,11 @@
 [Project_EPOCH]
 name = "Project_EPOCH"
-version = "0.0.1"
+version = "0.1.0"
+authors = [
+	{name = "Zheyuan Chen", email = "zheyuan.chen@york.ac.uk"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
 	"matplotlib >= 3.10.0",
 ]
