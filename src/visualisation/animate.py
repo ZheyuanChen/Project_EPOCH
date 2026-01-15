@@ -5,7 +5,7 @@ import sdf_helper as sh
 from matplotlib.animation import PillowWriter
 import sdf
 from matplotlib import animation
-
+import argparse
 import os
 from matplotlib.colors import LogNorm
 from matplotlib.backend_bases import KeyEvent
@@ -104,7 +104,7 @@ def animate_plot_auto_from_directory(directory_path, duration=0.1, verbose=False
 
 def animate_plot2d_from_directory(directory_path, duration=0.1, verbose=False):
     """
-    Create an animation using sh.plot_auto over all SDF
+    Create an animation using sh.plot2d over all SDF
     files in a directory.
     Ask the user for the variable to plot.
     Autoplay. Can specify duration between frames.
@@ -142,9 +142,8 @@ def animate_plot2d_from_directory(directory_path, duration=0.1, verbose=False):
     sh.plot2d(var0, figure=fig, subplot=ax)
 
     # ----------------------------------------------------------
-# ----------------------------------------------------------
-# 4. Animation over all SDF files (saved to GIF)
-# ----------------------------------------------------------
+    # 4. Animation over all SDF files (saved to GIF)
+    # ----------------------------------------------------------
 
     writer = PillowWriter(fps=int(1 / duration))
 
@@ -389,6 +388,107 @@ def animate_plot2d_with_slider(directory_path):
     print("Use slider or ← → keys. Press 'q' to quit.")
     plt.show()
 
+def save_2d_animation_to_gif(duration=0.1, verbose=False):
+    """
+    Create an animation using sh.plot2d over all SDF
+    files in a directory.
+    Ask the user for the variable to plot.
+    Autoplay. Can specify duration between frames.
+    Change verbose to be True to see loading messages. Useful to debug loading issues(broken files etc).
+    """
+
+    # 1. Parse command line arguments for directory path and output gif filename. If no directory provided, ask user for it. The default output filename is animation.gif
+    parser = argparse.ArgumentParser(
+        prog="save 2d animation to gif from sdf files in a directory",
+        description="Enter the directory path",
+    )
+
+    parser.add_argument(
+        "--filename",
+        type=str,
+        default= None,
+        help="Input filename",
+    )
+
+    parser.add_argument(
+        "--gif-filename",
+        type=str,
+        default="animation.gif",
+        help="Output filename for the gif.",
+    )
+
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default = False,
+        help="Enable verbose output during SDF file loading.",
+    )
+
+    parser.add_argument(
+        "--variable name to be animated",
+        type=str,
+        default=None,
+        help="Variable name to be animated.",
+    )
+
+    args = parser.parse_args()
+    filename = args.filename
+    gif_filename = args.gif_filename
+    verbose = args.verbose
+    variable_name = args.variable_name_to_be_animated
+    if filename is None:
+        directory_path = input("Enter the directory path containing SDF files: ").strip()
+    else:
+        directory_path = filename
+    
+
+    # ----------------------------------------------------------
+    # 2. Collect all SDF filenames
+    # ----------------------------------------------------------
+    # Gives a full list of .sdf files in the directory
+    # os.listdir lists all files; if statement filters for those ending with .sdf;  os.path.join combines directory path with filename
+    # in this case it joins directory_path with f (the filename) e.g. test_2d/0001.sdf
+    # looping over all files in the directory makes 'files' a list (of all .sdf files paths). 
+    
+    # Alternative simpler version without full paths
+    #files = [os.path.join(directory_path, f)
+    #         for f in os.listdir(directory_path)
+    #         if f.endswith(".sdf")]
+
+    data_list = read_sdffiles_from_directory(directory_path, verbose=verbose)
+    
+    # ----------------------------------------------------------
+    # 3. Ask user for variable to plot if not provided
+    # ----------------------------------------------------------
+    if variable_name is None:
+        print('Choose a variable to plot from the following list:')
+        sh.list_variables(data_list[0])       # get variable list from first SDF file.
+        variable_name = input("Enter the variable name to plot: ").strip() # strip() removes any leading/trailing whitespace
+
+    # ----------------------------------------------------------
+    # 4. Set up figure and initial frame
+    # ----------------------------------------------------------
+    fig, ax = plt.subplots(figsize=(6, 5)) # create figure and axis with specified size
+
+    # get first variable
+    var0 = getattr(data_list[0], variable_name)
+    sh.plot2d(var0, figure=fig, subplot=ax)
+
+    # ----------------------------------------------------------
+    # 4. Animation over all SDF files (saved to GIF)
+    # ----------------------------------------------------------
+
+    writer = PillowWriter(fps=int(1 / duration))
+
+    with writer.saving(fig, "animation.gif", dpi=150):
+        for i, data in enumerate(data_list):
+            plt.clf()
+            var = getattr(data, variable_name)
+            sh.plot2d(var, interpolation='bicubic')
+            plt.title(f"Frame {i}")
+            writer.grab_frame()
+
+
 # Load a single SDF file using xarray, sdf_helper, or sdf
 #ds = xr.open_dataset("./test_2d/0001.sdf")
 #data_sh = sh.getdata(57,'./mini_project_plasma_slab/data_10pc/data_10pc_crit_density')
@@ -410,12 +510,12 @@ def animate_plot2d_with_slider(directory_path):
 # sh.plot_auto(data_sh.Derived_Average_Particle_Energy_Electron) # example of plotting a specific variable
 
 
-animate_plot2d_from_directory('./test_2d', duration=0.05) # uncomment to use animation over directory
+#animate_plot2d_from_directory('./test_2d', duration=0.05) # uncomment to use animation over directory
 
 #animate_plot2d_from_directory_manual_control('./test_2d') # uncomment to use manual control animation over directory
 
 #animate_plot2d_with_slider('./test_2d')
-plt.show(block=True) # keep plots open
+#plt.show(block=True) # keep plots open
 
 # List variables using sdf. For some reason this does not show all variables
 #data_sdf.__dict__

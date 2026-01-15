@@ -27,4 +27,4 @@ dependencies = [
 ]
 
 [project.scripts]
-save_gif = "visualisation.animate:animate_plot2d_from_directory"
+save_gif = "visualisation.animate:save_2d_animation_to_gif"
