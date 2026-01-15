@@ -7,23 +7,16 @@ import os
 import re
 import sys
 import tempfile
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from functools import partial
 from hashlib import md5
 from importlib.metadata import version
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    TypeVar,
-)
+from typing import IO, TYPE_CHECKING, Any, TypeVar
 from urllib.parse import urlsplit
 
 if TYPE_CHECKING:
     import pathlib
-
-    from typing_extensions import TypeGuard
+    from typing import TypeGuard
 
     from fsspec.spec import AbstractFileSystem
 
@@ -436,6 +429,14 @@ def get_protocol(url: str) -> str:
     if len(parts) > 1:
         return parts[0]
     return "file"
+
+
+def get_file_extension(url: str) -> str:
+    url = stringify_path(url)
+    ext_parts = url.rsplit(".", 1)
+    if len(ext_parts) > 1:
+        return ext_parts[-1]
+    return ""
 
 
 def can_be_local(path: str) -> bool:

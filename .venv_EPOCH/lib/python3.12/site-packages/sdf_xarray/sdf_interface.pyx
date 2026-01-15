@@ -110,12 +110,12 @@ _CONSTANT_UNITS_RE = re.compile(r"(?P<name>.*) \((?P<units>.*)\)$")
 cdef class Constant:
     _id: str
     name: str
-    data: int | str | float
+    data: int | str | float | bool
     units: str | None
 
     @staticmethod
     cdef Constant from_block(str name, csdf.sdf_block_t* block):
-        data: int | str | float | double
+        data: int | str | float | double | bool
 
         if block.datatype == csdf.SDF_DATATYPE_REAL4:
             data = (<float*>block.const_value)[0]
@@ -125,6 +125,8 @@ cdef class Constant:
             data = (<csdf.int32_t*>block.const_value)[0]
         if block.datatype == csdf.SDF_DATATYPE_INTEGER8:
             data = (<csdf.int64_t*>block.const_value)[0]
+        if block.datatype == csdf.SDF_DATATYPE_LOGICAL:
+            data = (<bint*>block.const_value)[0]
 
         # There's no metadata with e.g. units, but there's a
         # convention to put one in brackets at the end of the name,
