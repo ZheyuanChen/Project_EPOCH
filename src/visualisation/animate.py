@@ -14,7 +14,15 @@ def read_sdffiles_from_directory(directory_path, verbose=False):
     """Read all SDF files from a directory and return a list of data objects.
     Change verbose to be True to see loading messages. Useful to debug loading issues(broken files etc).
     """
-
+    # Gives a full list of .sdf files in the directory
+    # os.listdir lists all files; if statement filters for those ending with .sdf;  os.path.join combines directory path with filename
+    # in this case it joins directory_path with f (the filename) e.g. test_2d/0001.sdf
+    # looping over all files in the directory makes 'files' a list (of all .sdf files paths). 
+    
+    # Alternative simpler version without full paths
+    #files = [os.path.join(directory_path, f)
+    #         for f in os.listdir(directory_path)
+    #         if f.endswith(".sdf")]
     # Collect all SDF filenames. os.listdir lists all files; if statement filters for those ending with .sdf
     files = [f for f in os.listdir(directory_path) if f.endswith(".sdf")]
     # Raise error if no files found
@@ -31,6 +39,53 @@ def read_sdffiles_from_directory(directory_path, verbose=False):
         number = sdf_number(f)
         data_list.append(sh.getdata(number, directory_path, verbose=verbose))
     return data_list
+
+def general_parser():
+    """Create a general argument parser for SDF animation scripts.
+    Returns the parser object.
+    """
+
+    parser = argparse.ArgumentParser(
+        prog="SDF Animation Tool",
+        description="Animate SDF files in a directory using sdf_helper visualisation functions.",
+    )
+
+    parser.add_argument(
+        "--gif-filename",
+        type=str,
+        default="animation.gif",
+        help="Output filename for the gif.",
+    )
+
+    parser.add_argument(
+        "--input-directory",
+        type=str,
+        required=True,
+        help="Input directory containing SDF files.",
+    )
+
+    parser.add_argument(
+        "--variable-name-to-be-animated",
+        type=str,
+        default=None,
+        help="Variable name to be animated.",
+    )
+
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=0.1,
+        help="Duration between frames in seconds.",
+    )
+
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Enable verbose output during SDF file loading.",
+    )
+
+    return parser
 
 def use_plot_auto_to_visualise_a_single_sdf_data(data_sh):
     """Use sdf_helper's plot_auto function to visualise a single SDF data set.
@@ -388,7 +443,7 @@ def animate_plot2d_with_slider(directory_path):
     print("Use slider or ← → keys. Press 'q' to quit.")
     plt.show()
 
-def save_2d_animation_to_gif(duration=0.1, verbose=False):
+def save_2d_animation_to_gif():
     """
     Create an animation using sh.plot2d over all SDF
     files in a directory.
@@ -398,73 +453,37 @@ def save_2d_animation_to_gif(duration=0.1, verbose=False):
     """
 
     # 1. Parse command line arguments for directory path and output gif filename. If no directory provided, ask user for it. The default output filename is animation.gif
-    parser = argparse.ArgumentParser(
-        prog="save 2d animation to gif from sdf files in a directory",
-        description="Enter the directory path",
-    )
-
-    parser.add_argument(
-        "--input-directory",
-        type=str,
-        default= None,
-        help="Input filename",
-    )
-
-    parser.add_argument(
-        "--gif-filename",
-        type=str,
-        default="animation.gif",
-        help="Output filename for the gif.",
-    )
-
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        default = False,
-        help="Enable verbose output during SDF file loading.",
-    )
-
-    parser.add_argument(
-        "--variable-name-to-be-animated",
-        type=str,
-        default=None,
-        help="Variable name to be animated.",
-    )
+    parser = general_parser()
 
     args = parser.parse_args()
     input_directory = args.input_directory
     gif_filename = args.gif_filename
     verbose = args.verbose
     variable_name = args.variable_name_to_be_animated
+    duration = args.duration
     if input_directory is None:
         directory_path = input("Enter the directory path containing SDF files: ").strip()
     else:
         directory_path = input_directory
     
-
     # ----------------------------------------------------------
     # 2. Collect all SDF filenames
     # ----------------------------------------------------------
-    # Gives a full list of .sdf files in the directory
-    # os.listdir lists all files; if statement filters for those ending with .sdf;  os.path.join combines directory path with filename
-    # in this case it joins directory_path with f (the filename) e.g. test_2d/0001.sdf
-    # looping over all files in the directory makes 'files' a list (of all .sdf files paths). 
-    
-    # Alternative simpler version without full paths
-    #files = [os.path.join(directory_path, f)
-    #         for f in os.listdir(directory_path)
-    #         if f.endswith(".sdf")]
-
     data_list = read_sdffiles_from_directory(directory_path, verbose=verbose)
     
     # ----------------------------------------------------------
-    # 3. Ask user for variable to plot if not provided
+    # 3. Ask user for variable to plot if not provided. Also set the gif filename to variable_name_animation.gif if not provided.
     # ----------------------------------------------------------
     if variable_name is None:
         print('Choose a variable to plot from the following list:')
         sh.list_variables(data_list[0])       # get variable list from first SDF file.
         variable_name = input("Enter the variable name to plot: ").strip() # strip() removes any leading/trailing whitespace
 
+    print("Creating animation...")
+
+    if gif_filename == "animation.gif":
+        gif_filename = f"{variable_name}_animation.gif"
+        print(f"No gif filename provided, using default: {gif_filename}")
     # ----------------------------------------------------------
     # 4. Set up figure and initial frame
     # ----------------------------------------------------------
@@ -487,6 +506,46 @@ def save_2d_animation_to_gif(duration=0.1, verbose=False):
             sh.plot2d(var, interpolation='bicubic')
             plt.title(f"Frame {i}")
             writer.grab_frame()
+
+    print("Animation saved to", gif_filename)
+
+def save_several_2d_animations_to_gifs():
+    """
+    Create several animations using sh.plot2d over all SDF
+    files in a directory.
+    Ask the user for the variables to plot.
+    Autoplay. Can specify duration between frames.
+    Change verbose to be True to see loading messages. Useful to debug loading issues(broken files etc).
+    """
+
+    # 1. Parse command line arguments for directory path and output gif filename. If no directory provided, ask user for it. The default output filename is animation.gif
+    parser = general_parser()
+
+    args = parser.parse_args()
+    input_directory = args.input_directory
+    verbose = args.verbose
+    duration = args.duration
+    
+    i = 1
+    directory_paths = {}
+    while True:
+        directory_paths[i] = input("Enter the directory path containing SDF files: ").strip()
+        i+=1
+        more = input("Do you want to add another directory? (y/n): ").strip().lower()
+        if more != 'y':
+            break
+
+    
+    i = 1
+    variable_names = {}
+    data_list = read_sdffiles_from_directory(directory_paths[1], verbose=verbose)
+    sh.list_variables(data_list[0])      # get variable list from first SDF file.
+    while True:
+        variable_names[i] = input("Enter the variable name to plot: ").strip() # strip() removes any leading/trailing whitespace
+        i+=1
+        more = input("Do you want to add another variable? (y/n): ").strip().lower()
+        if more != 'y':
+            break
 
 
 # Load a single SDF file using xarray, sdf_helper, or sdf

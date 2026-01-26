@@ -24,7 +24,9 @@ dependencies = [
 	"sdf-xarray>=0.4.0",
 	"sdfr>=1.4.11",
 	"xarray>=2025.12.0",
+	"h5py >= 3.15.1"
 ]
 
 [project.scripts]
 save_gif_2d = "visualisation.animate:save_2d_animation_to_gif"
+diana = "visualisation.diana_visualisation:run_cli"
