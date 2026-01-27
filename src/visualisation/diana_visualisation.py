@@ -249,8 +249,8 @@ def run_cli():
 
     # Load data
     Bz = load_hdf5_file(f"{args.dir}/{args.Bz_file}", "Bz")
-    Ex = load_hdf5_file(f"{args.dir}/{args.Ex_file}", "Jx")
-    Ey = load_hdf5_file(f"{args.dir}/{args.Ey_file}", "Jy")
+    Ex = load_hdf5_file(f"{args.dir}/{args.Ex_file}", "Ex")
+    Ey = load_hdf5_file(f"{args.dir}/{args.Ey_file}", "Ey")
     ne = load_hdf5_file(f"{args.dir}/{args.ne_file}", "xy")
     xye = load_hdf5_file(f"{args.dir}/{args.xye_file}", "xy_Ekin")
 
