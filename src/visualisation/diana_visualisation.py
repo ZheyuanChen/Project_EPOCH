@@ -139,10 +139,12 @@ class DianaInteractive:
         self.ne = ne
         self.xye_arrays = xye_arrays
         self.xye_labels = xye_labels
-
         self.time_step = time_step
 
+        # ----------------------------
         # Pools for rotation
+        # ----------------------------
+        from collections import deque
         self.pool = deque()
         self.pool_labels = deque()
         self.pool_ranges = deque()
@@ -151,22 +153,18 @@ class DianaInteractive:
             self.pool.append(self.Bz)
             self.pool_labels.append("Bz")
             self.pool_ranges.append([-0.2, 0.2])
-
         if self.Ex is not None:
             self.pool.append(self.Ex)
             self.pool_labels.append("Ex")
             self.pool_ranges.append([-0.2, 0.2])
-
         if self.Ey is not None:
             self.pool.append(self.Ey)
             self.pool_labels.append("Ey")
             self.pool_ranges.append([-0.2, 0.2])
 
-
         self.pool2 = deque()
         self.pool2_labels = deque()
         self.pool2_ranges = deque()
-
         if self.ne is not None:
             self.pool2.append(self.ne)
             self.pool2_labels.append("ne")
@@ -175,7 +173,6 @@ class DianaInteractive:
         self.pool3 = deque()
         self.pool3_labels = deque()
         self.pool3_ranges = deque()
-
         if self.xye_arrays:
             for arr, label in zip(self.xye_arrays, self.xye_labels):
                 if arr.ndim == 3:  # (t, x, y)
@@ -184,51 +181,71 @@ class DianaInteractive:
                     self.pool3_ranges.append([0.00004, 0.004])
 
         self.has_pool3 = len(self.pool3) > 0
-        if not self.has_pool3:
-            self.show_value3 = None
-            self.show_label3 = None
-            self.show_range3 = None
 
-        #self.pool3_ranges = deque([[0.00004, 0.004]] * len(self.xye_arrays))
-
+        # ----------------------------
         # Current displayed arrays
-        self.show_value = self.pool[0]
-        self.show_label = self.pool_labels[0]
-        self.show_range = self.pool_ranges[0]
+        # ----------------------------
+        self.show_value = self.pool[0] if self.pool else None
+        self.show_label = self.pool_labels[0] if self.pool else ""
+        self.show_range = self.pool_ranges[0] if self.pool else [0, 1]
 
-        self.show_value2 = self.pool2[0]
-        self.show_label2 = self.pool2_labels[0]
-        self.show_range2 = self.pool2_ranges[0]
-        if self.has_pool3:
-                self.show_value3 = self.pool3[0]
-                self.show_label3 = self.pool3_labels[0]
-                self.show_range3 = self.pool3_ranges[0]
+        self.show_value2 = self.pool2[0] if self.pool2 else None
+        self.show_label2 = self.pool2_labels[0] if self.pool2 else ""
+        self.show_range2 = self.pool2_ranges[0] if self.pool2 else [0, 1]
 
-        # Colormaps
-        self.cmap_new, self.cmap_new2, self.cmap_newB = setup_colormaps()
-        self.borders = (0.0001, 200, 0.0001, 24)
-
-        # Setup figure
-        self.fig, self.ax = plt.subplots()
-        self.img2 = self.ax.imshow(
-            np.transpose(self.show_value2[self.time_step]),
-            cmap=self.cmap_new,
-            vmin=self.show_range2[0],
-            vmax=self.show_range2[1],
-            extent=self.borders
-        )
-        self.img1 = self.ax.imshow(
-            np.transpose(self.show_value[self.time_step]),
-            cmap=self.cmap_newB,
-            vmin=self.show_range[0],
-            vmax=self.show_range[1],
-            extent=self.borders
-        )
         if self.has_pool3:
             self.show_value3 = self.pool3[0]
             self.show_label3 = self.pool3_labels[0]
             self.show_range3 = self.pool3_ranges[0]
+        else:
+            self.show_value3 = None
+            self.show_label3 = None
+            self.show_range3 = None
 
+        # ----------------------------
+        # Colormaps
+        # ----------------------------
+        self.cmap_new, self.cmap_new2, self.cmap_newB = setup_colormaps()
+        self.borders = (0.0001, 200, 0.0001, 24)
+
+        # ----------------------------
+        # Setup figure
+        # ----------------------------
+        import matplotlib.pyplot as plt
+        self.fig, self.ax = plt.subplots()
+
+        # Pool 1
+        self.img1 = None
+        self.cbar1 = None
+        if self.pool:
+            self.img1 = self.ax.imshow(
+                np.transpose(self.show_value[self.time_step]),
+                cmap=self.cmap_newB,
+                vmin=self.show_range[0],
+                vmax=self.show_range[1],
+                extent=self.borders
+            )
+            self.cbar1 = plt.colorbar(self.img1, fraction=0.02, pad=0.1)
+            self.cbar1.ax.set_title(f"${self.show_label}$")
+
+        # Pool 2
+        self.img2 = None
+        self.cbar2 = None
+        if self.pool2:
+            self.img2 = self.ax.imshow(
+                np.transpose(self.show_value2[self.time_step]),
+                cmap=self.cmap_new,
+                vmin=self.show_range2[0],
+                vmax=self.show_range2[1],
+                extent=self.borders
+            )
+            self.cbar2 = plt.colorbar(self.img2, fraction=0.02, pad=0.04)
+            self.cbar2.ax.set_title(f"${self.show_label2}$")
+
+        # Pool 3
+        self.img3 = None
+        self.cbar3 = None
+        if self.has_pool3:
             self.img3 = self.ax.imshow(
                 np.transpose(self.show_value3[self.time_step]),
                 cmap=self.cmap_new2,
@@ -236,127 +253,73 @@ class DianaInteractive:
                 vmax=self.show_range3[1],
                 extent=self.borders
             )
-        else:
-            self.img3 = None
-
-
-        # Colorbars
-        self.cbar1 = plt.colorbar(self.img1, fraction=0.02, pad=0.1)
-        self.cbar1.ax.set_title('$B_z / a_0$')
-
-        self.cbar2 = plt.colorbar(self.img2, fraction=0.02, pad=0.04)
-        self.cbar2.ax.set_title('$n_e / n_{cr}$')
-
-        if self.has_pool3:
-            self.cbar3 = plt.colorbar(self.img3, fraction=0.02, pad=0.04)
+            self.cbar3 = plt.colorbar(self.img3, fraction=0.02, pad=0.06)
             self.cbar3.ax.set_title(f"${self.show_label3}$")
-        else:
-            self.cbar3 = None
 
-
+        # ----------------------------
         # Connect events
+        # ----------------------------
         self.fig.canvas.mpl_connect('key_press_event', self.onclick)
 
         # Show figure
         plt.show()
 
     # ----------------------------
-    # Plot refresh
+    # Refresh plot
     # ----------------------------
-    #def refresh_plot(self):
-        # Update Pool 1
-        self.img1.set_data(np.transpose(self.show_value[self.time_step]))
-        self.img1.set_clim(vmin=self.show_range[0], vmax=self.show_range[1])
-        self.cbar1.set_clim(vmin=self.show_range[0], vmax=self.show_range[1])
-        self.cbar1.ax.set_title(f"${self.show_label}$")  # update title
-        self.cbar1.draw_all()  # refresh
-
-        # Update Pool 2
-        # Uncomment when we have more than ne in pool2
-        self.img2.set_data(np.transpose(self.show_value2[self.time_step]))
-        self.img2.set_clim(vmin=self.show_range2[0], vmax=self.show_range2[1])
-        self.cbar2.set_clim(vmin=self.show_range2[0], vmax=self.show_range2[1])
-        self.cbar2.ax.set_title(f"${self.show_label2}$")  # update title
-        self.cbar2.draw_all()  # refresh
-
-        if self.img3 is not None:
-            self.img3.set_data(np.transpose(self.show_value3[self.time_step]))
-            self.img3.set_clim(vmin=self.show_range3[0],vmax=self.show_range3[1])
-            self.cbar3.set_clim(vmin=self.show_range3[0], vmax=self.show_range3[1])
-            self.cbar3.ax.set_title(f"${self.show_label3}$")
-            self.cbar3.draw_all()
-
-        #self.img1.set_clim(vmin=self.show_range[0], vmax=self.show_range[1])
-        #self.img2.set_clim(vmin=self.show_range2[0], vmax=self.show_range2[1])
-        #self.img3.set_clim(vmin=self.show_range3[0], vmax=self.show_range3[1])
-
-        #self.ax.set_title(
-        #    f'{self.show_label3}  Ne={np.sum(self.show_value3[self.time_step]):.3f}  timestep={self.time_step*10:.1f}T'
-        #)
-        if self.has_pool3:
-            title = (
-                f'{self.show_label3}  '
-                f'Ne={np.sum(self.show_value3[self.time_step]):.3f}  '
-                f'timestep={self.time_step*10:.1f}T'
-            )
-        else:
-            title = f'timestep={self.time_step*10:.1f}T'
-
-        self.ax.set_title(title)
-
-        self.cbar1.set_ticks(np.linspace(self.show_range[0], self.show_range[1], 5))
-        self.cbar2.set_ticks(np.linspace(self.show_range2[0], self.show_range2[1], 5))
-
-        self.fig.canvas.draw()
-
     def refresh_plot(self):
         # Pool 1
-        self.img1.set_data(np.transpose(self.show_value[self.time_step]))
-        self.img1.set_clim(vmin=self.show_range[0], vmax=self.show_range[1])
-        self.cbar1.ax.set_title(f"${self.show_label}$")
-        self.cbar1.set_ticks(np.linspace(self.show_range[0], self.show_range[1], 5))
+        if self.img1 is not None:
+            self.img1.set_data(np.transpose(self.show_value[self.time_step]))
+            self.img1.set_clim(vmin=self.show_range[0], vmax=self.show_range[1])
+            if self.cbar1 is not None:
+                self.cbar1.update_normal(self.img1)
+                self.cbar1.ax.set_title(f"${self.show_label}$")
+                self.cbar1.set_ticks(np.linspace(self.show_range[0], self.show_range[1], 5))
 
         # Pool 2
-        self.img2.set_data(np.transpose(self.show_value2[self.time_step]))
-        self.img2.set_clim(vmin=self.show_range2[0], vmax=self.show_range2[1])
-        self.cbar2.ax.set_title(f"${self.show_label2}$")
-        self.cbar2.set_ticks(np.linspace(self.show_range2[0], self.show_range2[1], 5))
+        if self.img2 is not None:
+            self.img2.set_data(np.transpose(self.show_value2[self.time_step]))
+            self.img2.set_clim(vmin=self.show_range2[0], vmax=self.show_range2[1])
+            if self.cbar2 is not None:
+                self.cbar2.update_normal(self.img2)
+                self.cbar2.ax.set_title(f"${self.show_label2}$")
+                self.cbar2.set_ticks(np.linspace(self.show_range2[0], self.show_range2[1], 5))
 
-        # Pool 3 (if exists)
+        # Pool 3
         if self.img3 is not None:
             self.img3.set_data(np.transpose(self.show_value3[self.time_step]))
             self.img3.set_clim(vmin=self.show_range3[0], vmax=self.show_range3[1])
-            self.cbar3.ax.set_title(f"${self.show_label3}$")
-            self.cbar3.set_ticks(np.linspace(self.show_range3[0], self.show_range3[1], 5))
+            if self.cbar3 is not None:
+                self.cbar3.update_normal(self.img3)
+                self.cbar3.ax.set_title(f"${self.show_label3}$")
+                self.cbar3.set_ticks(np.linspace(self.show_range3[0], self.show_range3[1], 5))
 
         # Title
         if self.has_pool3:
-            title = (
-                f'{self.show_label3}  '
-                f'Ne={np.sum(self.show_value3[self.time_step]):.3f}  '
-                f'timestep={self.time_step*10:.1f}T'
-            )
+            title = f'{self.show_label3}  Ne={np.sum(self.show_value3[self.time_step]):.3f}  timestep={self.time_step*10:.1f}T'
         else:
             title = f'timestep={self.time_step*10:.1f}T'
+
         self.ax.set_title(title)
-
-        # Refresh the figure
         self.fig.canvas.draw_idle()
-
 
     # ----------------------------
     # Key press handler
     # ----------------------------
     def onclick(self, event):
-        if event.key == 'right': # right arrow: next timestep
+        # Time navigation
+        if event.key == 'right':
             self.time_step = min(self.time_step + 1, self.show_value.shape[0]-1)
-        elif event.key == 'left': # left arrow: previous timestep
+        elif event.key == 'left':
             self.time_step = max(self.time_step - 1, 0)
-        elif event.key == 'shift+right': # fast forward
+        elif event.key == 'shift+right':
             self.time_step = min(self.time_step + 10, self.show_value.shape[0]-1)
-        elif event.key == 'shift+left': # fast backward
+        elif event.key == 'shift+left':
             self.time_step = max(self.time_step - 10, 0)
-        elif event.key == 'm': # rotate main pool
+
+        # Pool 1 rotation
+        elif event.key == 'm':
             self.pool.rotate(-1)
             self.pool_labels.rotate(-1)
             self.pool_ranges.rotate(-1)
@@ -370,6 +333,8 @@ class DianaInteractive:
             self.show_value = self.pool[0]
             self.show_label = self.pool_labels[0]
             self.show_range = self.pool_ranges[0]
+
+        # Pool 2 rotation
         elif event.key == 'M':
             self.pool2.rotate(-1)
             self.pool2_labels.rotate(-1)
@@ -384,6 +349,8 @@ class DianaInteractive:
             self.show_value2 = self.pool2[0]
             self.show_label2 = self.pool2_labels[0]
             self.show_range2 = self.pool2_ranges[0]
+
+        # Pool 3 rotation
         elif event.key == 'ctrl+m' and self.has_pool3:
             self.pool3.rotate(-1)
             self.pool3_labels.rotate(-1)
@@ -399,6 +366,28 @@ class DianaInteractive:
             self.show_label3 = self.pool3_labels[0]
             self.show_range3 = self.pool3_ranges[0]
 
+        # ----------------------------
+        # Toggle pool visibility
+        # ----------------------------
+        elif event.key == '1' and self.img1 is not None:
+            visible = not self.img1.get_visible()
+            self.img1.set_visible(visible)
+            if self.cbar1 is not None:
+                self.cbar1.ax.set_visible(visible)
+
+        elif event.key == '2' and self.img2 is not None:
+            visible = not self.img2.get_visible()
+            self.img2.set_visible(visible)
+            if self.cbar2 is not None:
+                self.cbar2.ax.set_visible(visible)
+
+        elif event.key == '3' and self.img3 is not None:
+            visible = not self.img3.get_visible()
+            self.img3.set_visible(visible)
+            if self.cbar3 is not None:
+                self.cbar3.ax.set_visible(visible)
+
+        # Refresh plot
         self.refresh_plot()
 
 

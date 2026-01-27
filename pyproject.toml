@@ -30,3 +30,4 @@ dependencies = [
 [project.scripts]
 save_gif_2d = "visualisation.animate:save_2d_animation_to_gif"
 diana = "visualisation.diana_visualisation:run_cli"
+diana_test = "visualisation.diana_visualisation_stable_version:run_cli"
