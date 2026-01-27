@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-import inspect
 import uuid
 import warnings
 from collections import OrderedDict
@@ -578,9 +577,9 @@ def optimize(*args, traverse=True, **kwargs):
     >>> a2, b2 = dask.optimize(a, b)
 
     >>> a2.compute() == a.compute()
-    np.True_
+    True
     >>> b2.compute() == b.compute()
-    np.True_
+    True
     """
     # TODO: This API is problematic. The approach to using postpersist forces us
     # to materialize the graph. Most low level optimizations will materialize as
@@ -641,12 +640,12 @@ def compute(
     >>> a = da.arange(10, chunks=2).sum()
     >>> b = da.arange(10, chunks=2).mean()
     >>> dask.compute(a, b)
-    (np.int64(45), np.float64(4.5))
+    (45, 4.5)
 
     By default, dask objects inside python collections will also be computed:
 
     >>> dask.compute({'a': a, 'b': b, 'c': 1})
-    ({'a': np.int64(45), 'b': np.float64(4.5), 'c': 1},)
+    ({'a': 45, 'b': 4.5, 'c': 1},)
     """
 
     collections, repack = unpack_collections(*args, traverse=traverse)
@@ -996,22 +995,13 @@ def persist(*args, traverse=True, optimize_graph=True, scheduler=None, **kwargs)
 
     schedule = get_scheduler(scheduler=scheduler, collections=collections)
 
-    if inspect.ismethod(schedule):
-        try:
-            from distributed.client import default_client
-        except ImportError:
-            pass
-        else:
-            try:
-                client = default_client()
-            except ValueError:
-                pass
-            else:
-                if client.get == schedule:
-                    results = client.persist(
-                        collections, optimize_graph=optimize_graph, **kwargs
-                    )
-                    return repack(results)
+    # Protocol: scheduler can provide its own persist method for async behavior.
+    # For Client-like objects, get_scheduler returns client.get (a bound method),
+    # so we check __self__ for the actual client instance.
+    client = getattr(schedule, "__self__", schedule)
+    if hasattr(client, "persist") and callable(client.persist):
+        results = client.persist(collections, optimize_graph=optimize_graph, **kwargs)
+        return repack(results)
 
     expr = collections_to_expr(collections, optimize_graph)
     expr = expr.optimize()
