@@ -26,6 +26,18 @@ import matplotlib.colors as clr
 # Available variables to be displayed
 # ----------------------------
 VARIABLES = {
+    "Jx": {
+        "file": "Jx.hdf5",
+        "dataset": "Jx",
+        "pool": 1,
+        "range": [-0.2, 0.2],
+    },
+    "Jy": {
+        "file": "Jy.hdf5",
+        "dataset": "Jy",
+        "pool": 1,
+        "range": [-0.2, 0.2],
+    },
     "Bz": {
         "file": "Bz.hdf5",
         "dataset": "Bz",
@@ -50,6 +62,18 @@ VARIABLES = {
         "pool": 2,
         "range": [0.01, 0.25],
     },
+    "n_photon": {
+        "file": "n_photon.hdf5",
+        "dataset": "n_photon",
+        "pool": 2,
+        "range": [0.01, 0.25],
+    },
+    "poynt_x": {
+        "file": "poynt_x.hdf5",
+        "dataset": "poynt_x",
+        "pool": 3,
+        "range": [0.00001, 0.002],
+    },
     "xye": {
         "file": "x_y_Ekin.hdf5",
         "dataset": "xy_Ekin",
@@ -62,7 +86,6 @@ VARIABLES = {
 # ----------------------------
 # Helper functions
 # ----------------------------
-
 def load_hdf5_file(filepath: str, dataset_name: str) -> np.ndarray:
     """Load dataset from HDF5 file safely."""
     if not os.path.isfile(filepath):
@@ -70,54 +93,44 @@ def load_hdf5_file(filepath: str, dataset_name: str) -> np.ndarray:
     with h5py.File(filepath, "r") as f:
         if dataset_name not in f:
             raise KeyError(f"{dataset_name} not found in {filepath}")
-        data = f[dataset_name][:] # type: ignore
+        data = f[dataset_name][:]  # type: ignore
     return np.array(data)
 
 def probe_hdf5_variable(directory, file_name, dataset, label, verbose=True):
     path = os.path.join(directory, file_name)
-
     if not os.path.isfile(path):
         if verbose:
             print(f"⚠ Missing file: {file_name} ({label})")
         return None
-
     try:
         with h5py.File(path, "r") as f:
             if dataset not in f:
                 if verbose:
                     print(f"⚠ Missing dataset '{dataset}' in {file_name}")
                 return None
-            return np.array(f[dataset][:], dtype =np.float32) # instead of read as float64, read as float32 to save memory
+            return np.array(f[dataset][:], dtype=np.float32)
     except Exception as e:
         if verbose:
             print(f"⚠ Failed loading {label}: {e}")
         return None
 
-
 def prepare_xye_arrays(xye: np.ndarray):
     """Transform x_y_Ekin array into per-energy arrays and combine E>=2 MeV."""
     labels = [f"{i} MeV" for i in range(xye.shape[-1])]
     arrays = [xye[:, :, :, i] for i in range(xye.shape[-1])]
-    
-    # Combine energies >= 2 MeV
     arrays[0] = sum(arrays[2:])
     labels[0] = "E>=2 MeV"
     return arrays, labels
 
-
 def setup_colormaps():
-    """Return the three custom colormaps."""
-    # Grey semi-transparent
     cmap1 = plt.cm.gist_yarg
     my_cmap = cmap1(np.arange(cmap1.N))
     my_cmap[:, -1] = 0.8
     cmap_new = ListedColormap(my_cmap)
 
-    # Green
     colors2 = [(0.2, 1, 0.01, (c+1)*0.5) for c in np.linspace(-1, 1, 200)]
     cmap_new2 = clr.LinearSegmentedColormap.from_list('mycmap2', colors2, N=200)
 
-    # Red/Blue
     cmapB = plt.cm.coolwarm
     my_cmapB = cmapB(np.arange(cmapB.N))
     aB = [abs(i-128)/128 for i in range(cmapB.N)]
@@ -126,56 +139,61 @@ def setup_colormaps():
 
     return cmap_new, cmap_new2, cmap_newB
 
-
 # ----------------------------
 # Main class
 # ----------------------------
-
 class DianaInteractive:
-    def __init__(self, Bz, Ex, Ey, ne, xye_arrays, xye_labels, time_step=0):
+    def __init__(self, Jx, Jy, Bz, Ex, Ey, ne, n_photon, poynt_x, xye_arrays, xye_labels, time_step=0):
+        self.Jx = Jx
+        self.Jy = Jy
         self.Bz = Bz
         self.Ex = Ex
         self.Ey = Ey
         self.ne = ne
+        self.n_photon = n_photon
+        self.poynt_x = poynt_x
         self.xye_arrays = xye_arrays
         self.xye_labels = xye_labels
         self.time_step = time_step
 
+        from collections import deque
         # ----------------------------
         # Pools for rotation
         # ----------------------------
-        from collections import deque
         self.pool = deque()
         self.pool_labels = deque()
         self.pool_ranges = deque()
-
-        if self.Bz is not None:
-            self.pool.append(self.Bz)
-            self.pool_labels.append("Bz")
-            self.pool_ranges.append([-0.2, 0.2])
-        if self.Ex is not None:
-            self.pool.append(self.Ex)
-            self.pool_labels.append("Ex")
-            self.pool_ranges.append([-0.2, 0.2])
-        if self.Ey is not None:
-            self.pool.append(self.Ey)
-            self.pool_labels.append("Ey")
-            self.pool_ranges.append([-0.2, 0.2])
+        for arr, label, rng in [(self.Jx, "Jx", [-0.2, 0.2]),
+                                (self.Jy, "Jy", [-0.2, 0.2]),
+                                (self.Bz, "Bz", [-0.2, 0.2]),
+                                (self.Ex, "Ex", [-0.2, 0.2]),
+                                (self.Ey, "Ey", [-0.2, 0.2])]:
+            if arr is not None:
+                self.pool.append(arr)
+                self.pool_labels.append(label)
+                self.pool_ranges.append(rng)
 
         self.pool2 = deque()
         self.pool2_labels = deque()
         self.pool2_ranges = deque()
-        if self.ne is not None:
-            self.pool2.append(self.ne)
-            self.pool2_labels.append("ne")
-            self.pool2_ranges.append([0.01, 0.25])
+        for arr, label, rng in [(self.ne, "ne", [0.01, 0.25]),
+                                (self.n_photon, "n_photon", [0.01, 0.25])]:
+            if arr is not None:
+                self.pool2.append(arr)
+                self.pool2_labels.append(label)
+                self.pool2_ranges.append(rng)
 
         self.pool3 = deque()
         self.pool3_labels = deque()
         self.pool3_ranges = deque()
+        for arr, label, rng in [(self.poynt_x, "poynt_x", [0.00001, 0.002])]:
+            if arr is not None:
+                self.pool3.append(arr)
+                self.pool3_labels.append(label)
+                self.pool3_ranges.append(rng)
         if self.xye_arrays:
             for arr, label in zip(self.xye_arrays, self.xye_labels):
-                if arr.ndim == 3:  # (t, x, y)
+                if arr.ndim == 3:
                     self.pool3.append(arr)
                     self.pool3_labels.append(label)
                     self.pool3_ranges.append([0.00004, 0.004])
@@ -211,7 +229,6 @@ class DianaInteractive:
         # ----------------------------
         # Setup figure
         # ----------------------------
-        import matplotlib.pyplot as plt
         self.fig, self.ax = plt.subplots()
 
         # Pool 1
@@ -335,14 +352,14 @@ class DianaInteractive:
             self.show_range = self.pool_ranges[0]
 
         # Pool 2 rotation
-        elif event.key == 'M':
+        elif event.key == 'a':
             self.pool2.rotate(-1)
             self.pool2_labels.rotate(-1)
             self.pool2_ranges.rotate(-1)
             self.show_value2 = self.pool2[0]
             self.show_label2 = self.pool2_labels[0]
             self.show_range2 = self.pool2_ranges[0]
-        elif event.key == 'N':
+        elif event.key == 'd':
             self.pool2.rotate(1)
             self.pool2_labels.rotate(1)
             self.pool2_ranges.rotate(1)
@@ -396,18 +413,10 @@ class DianaInteractive:
 # ----------------------------
 def run_cli():
     parser = argparse.ArgumentParser(description="Interactive plasma data visualisation CLI")
-    
     parser.add_argument("--dir", type=str, default=".", help="Directory with HDF5 files")
     parser.add_argument("--time_step", type=int, default=0)
-    #parser.add_argument("--Bz_file", type=str, default="Bz.hdf5")
-    #parser.add_argument("--Ex_file", type=str, default="Ex.hdf5")
-    #parser.add_argument("--Ey_file", type=str, default="Ey.hdf5")
-    #parser.add_argument("--ne_file", type=str, default="x_y.hdf5")
-    #parser.add_argument("--xye_file", type=str, default="x_y_Ekin.hdf5")
-    
     args = parser.parse_args()
-    
-    
+
     # Load data
     loaded = {}
     print("Probing HDF5 variables:")
@@ -424,32 +433,27 @@ def run_cli():
 
     if not loaded:
         raise RuntimeError("No valid HDF5 variables found.")
-    
-    #Bz = load_hdf5_file(f"{args.dir}/{args.Bz_file}", "Bz")
-    #Ex = load_hdf5_file(f"{args.dir}/{args.Ex_file}", "Ex")
-    #Ey = load_hdf5_file(f"{args.dir}/{args.Ey_file}", "Ey")
-    #ne = load_hdf5_file(f"{args.dir}/{args.ne_file}", "xy")
-    #xye = load_hdf5_file(f"{args.dir}/{args.xye_file}", "xy_Ekin")
-
 
     # --------------------------------------------------------
     # Special post-processing
     # --------------------------------------------------------
     xye_arrays = []
     xye_labels = []
-
     if "xye" in loaded:
         xye_arrays, xye_labels = prepare_xye_arrays(loaded["xye"])
-    #xye_arrays, xye_labels = prepare_xye_arrays(xye)
 
     # --------------------------------------------------------
     # Launch interactive viewer
     # --------------------------------------------------------
     DianaInteractive(
+        Jx=loaded.get("Jx"),
+        Jy=loaded.get("Jy"),
         Bz=loaded.get("Bz"),
         Ex=loaded.get("Ex"),
         Ey=loaded.get("Ey"),
         ne=loaded.get("ne"),
+        n_photon=loaded.get("n_photon"),
+        poynt_x=loaded.get("poynt_x"),
         xye_arrays=xye_arrays,
         xye_labels=xye_labels,
         time_step=args.time_step,
