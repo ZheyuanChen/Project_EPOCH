@@ -75,10 +75,10 @@ def setup_colormaps():
 # ----------------------------
 
 class DianaInteractive:
-    def __init__(self, Bz, Ex, Ey, ne, xye_arrays, xye_labels, time_step=0):
+    def __init__(self, Bz, Jx, Jy, ne, xye_arrays, xye_labels, time_step=0):
         self.Bz = Bz
-        self.Ex = Ex
-        self.Ey = Ey
+        self.Jx = Jx
+        self.Jy = Jy
         self.ne = ne
         self.xye_arrays = xye_arrays
         self.xye_labels = xye_labels
@@ -86,8 +86,8 @@ class DianaInteractive:
         self.time_step = time_step
 
         # Pools for rotation
-        self.pool = deque([self.Bz, self.Ex, self.Ey])
-        self.pool_labels = deque(['Bz', 'Ex', 'Ey'])
+        self.pool = deque([self.Bz, self.Jx, self.Jy])
+        self.pool_labels = deque(['Bz', 'Jx', 'Jy'])
         self.pool_ranges = deque([[-0.2, 0.2]] * 3)
 
         self.pool2 = deque([self.ne])
@@ -240,24 +240,24 @@ def run_cli():
     parser.add_argument("--dir", type=str, default=".", help="Directory with HDF5 files")
     parser.add_argument("--time_step", type=int, default=0)
     parser.add_argument("--Bz_file", type=str, default="Bz.hdf5")
-    parser.add_argument("--Ex_file", type=str, default="Ex.hdf5")
-    parser.add_argument("--Ey_file", type=str, default="Ey.hdf5")
-    parser.add_argument("--ne_file", type=str, default="x_y.hdf5")
+    parser.add_argument("--Jx_file", type=str, default="Jx.hdf5")
+    parser.add_argument("--Jy_file", type=str, default="Jy.hdf5")
+    parser.add_argument("--ne_file", type=str, default="n_e.hdf5")
     parser.add_argument("--xye_file", type=str, default="x_y_Ekin.hdf5")
     
     args = parser.parse_args()
 
     # Load data
     Bz = load_hdf5_file(f"{args.dir}/{args.Bz_file}", "Bz")
-    Ex = load_hdf5_file(f"{args.dir}/{args.Ex_file}", "Jx")
-    Ey = load_hdf5_file(f"{args.dir}/{args.Ey_file}", "Jy")
+    Jx = load_hdf5_file(f"{args.dir}/{args.Jx_file}", "Jx")
+    Jy = load_hdf5_file(f"{args.dir}/{args.Jy_file}", "Jy")
     ne = load_hdf5_file(f"{args.dir}/{args.ne_file}", "xy")
     xye = load_hdf5_file(f"{args.dir}/{args.xye_file}", "xy_Ekin")
 
     xye_arrays, xye_labels = prepare_xye_arrays(xye)
 
     # Launch interactive plot
-    DianaInteractive(Bz, Ex, Ey, ne, xye_arrays, xye_labels, time_step=args.time_step)
+    DianaInteractive(Bz, Jx, Jy, ne, xye_arrays, xye_labels, time_step=args.time_step)
 
 
 # ----------------------------

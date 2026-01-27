@@ -16,12 +16,12 @@ import sdf_helper as sh
 
 # Directory containing SDF files
 #INPUT_DIR = os.path.abspath(os.path.dirname(__file__))
-INPUT_DIR = "/home/pnd531/Desktop/data_depository/data_10pc/data_10pc_crit_density"
+INPUT_DIR = "/home/pnd531/Desktop/Project_EPOCH/test_hdf5/sdf_files"
 
 
 # Directory to write HDF5 files
 #OUTPUT_DIR = os.path.join(INPUT_DIR, "hdf5_output")
-OUTPUT_DIR = "/home/pnd531/Desktop/data_depository/data_10pc/data_10pc_crit_density/hdf5_output"
+OUTPUT_DIR = "/home/pnd531/Desktop/Project_EPOCH/test_hdf5/hdf5_output"
 
 # Maximum timestep index to scan. i.e. number of SDF files to look for. Typically shouldn't have more than 200 files.
 MAX_STEPS = 5000
@@ -34,8 +34,14 @@ VARIABLES = {
     "Bz": ("Magnetic_Field_Bz", "Bz.hdf5"),
     "Ex": ("Electric_Field_Ex", "Ex.hdf5"),
     "Ey": ("Electric_Field_Ey", "Ey.hdf5"),
-    "xy": ("Derived_Number_Density_Electron", "x_y.hdf5"),
-    "xy_Ekin": ("Derived_Electron_Kinetic_Energy", "x_y_Ekin.hdf5"),
+    "Jx": ("Current_Jx", "Jx.hdf5"),
+    "Jy": ("Current_Jy", "Jy.hdf5"),
+    "ne": ("Derived_Number_Density_Electron", "n_e.hdf5"),
+    "n_photon": ("Derived_Number_Density_Photon", "n_photon.hdf5"),
+    #"xy_Ekin": ("Derived_Electron_Kinetic_Energy", "x_y_Ekin.hdf5"),
+    "poynt_x": ("Derived_Poynting_Flux_x", "poynt_x.hdf5"),
+    "xy_Ekin": ("Derived_Average_Particle_Energy_Electron", "x_y_Ekin.hdf5"),
+    
     # future additions go here
 }
 

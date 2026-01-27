@@ -209,8 +209,9 @@ begin:output
   mass_density = never + species
   charge_density = never
   number_density = always + species
-  temperature = never + species
-
+  temperature = always + species
+  poynt_flux = always
+  ekbar = always +species
   # extended io
   distribution_functions = always
   particle_probes = never
