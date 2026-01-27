@@ -87,7 +87,7 @@ def probe_hdf5_variable(directory, file_name, dataset, label, verbose=True):
                 if verbose:
                     print(f"⚠ Missing dataset '{dataset}' in {file_name}")
                 return None
-            return np.array(f[dataset][:])
+            return np.array(f[dataset][:], dtype =np.float32) # instead of read as float64, read as float32 to save memory
     except Exception as e:
         if verbose:
             print(f"⚠ Failed loading {label}: {e}")
