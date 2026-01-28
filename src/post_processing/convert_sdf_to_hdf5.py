@@ -16,12 +16,12 @@ import sdf_helper as sh
 
 # Directory containing SDF files
 #INPUT_DIR = os.path.abspath(os.path.dirname(__file__))
-INPUT_DIR = "/home/pnd531/Desktop/Project_EPOCH/test_2d/sdf_files"
+INPUT_DIR = "/home/pnd531/Desktop/Project_EPOCH/test_hdf5/sdf_files"
 
 
 # Directory to write HDF5 files
 #OUTPUT_DIR = os.path.join(INPUT_DIR, "hdf5_output")
-OUTPUT_DIR = "/home/pnd531/Desktop/Project_EPOCH/test_2d/hdf5_output"
+OUTPUT_DIR = "/home/pnd531/Desktop/Project_EPOCH/test_hdf5/hdf5_output"
 
 # Maximum timestep index to scan. i.e. number of SDF files to look for. Typically shouldn't have more than 200 files.
 MAX_STEPS = 5000

@@ -22,6 +22,25 @@ from matplotlib.colors import ListedColormap
 import matplotlib.colors as clr
 
 
+
+
+me=9.1e-31
+c=3e8
+e=1.6e-19
+llambda=1e-6
+e0=8.85e-12
+omega=2*np.pi*c/llambda
+
+norm=(2*np.pi*me*c)/(llambda*e)
+#Bzz=Bz/norm
+#Exx=Ex/(norm*c)
+#Eyy=Ey/(norm*c)
+#Ezz=Ez/(norm*c)
+
+critical_density = e0*me*omega**2/e**2 #in 1/m3
+
+#ne_beam_norm = ne_beam/critical_density
+
 # ----------------------------
 # Available variables to be displayed
 # ----------------------------
@@ -30,31 +49,31 @@ VARIABLES = {
         "file": "Jx.hdf5",
         "dataset": "Jx",
         "pool": 1,
-        "range": [-0.2, 0.2],
+        "range": [-50, 50],
     },
     "Jy": {
         "file": "Jy.hdf5",
         "dataset": "Jy",
         "pool": 1,
-        "range": [-0.2, 0.2],
+        "range": [-50, 50],
     },
     "Bz": {
         "file": "Bz.hdf5",
         "dataset": "Bz",
         "pool": 1,
-        "range": [-0.2, 0.2],
+        "range": [-50, 50],
     },
     "Ex": {
         "file": "Ex.hdf5",
         "dataset": "Ex",
         "pool": 1,
-        "range": [-0.2, 0.2],
+        "range": [-0.5, 0.5],
     },
     "Ey": {
         "file": "Ey.hdf5",
         "dataset": "Ey",
         "pool": 1,
-        "range": [-0.2, 0.2],
+        "range": [-0.5, 0.5],
     },
     "ne": {
         "file": "x_y.hdf5",
@@ -166,8 +185,8 @@ class DianaInteractive:
         for arr, label, rng in [(self.Jx, "Jx", [-0.2, 0.2]),
                                 (self.Jy, "Jy", [-0.2, 0.2]),
                                 (self.Bz, "Bz", [-0.2, 0.2]),
-                                (self.Ex, "Ex", [-0.2, 0.2]),
-                                (self.Ey, "Ey", [-0.2, 0.2])]:
+                                (self.Ex, "Ex", [-0.5, 0.5]),
+                                (self.Ey, "Ey", [-0.5, 0.5])]:
             if arr is not None:
                 self.pool.append(arr)
                 self.pool_labels.append(label)
@@ -449,8 +468,8 @@ def run_cli():
         Jx=loaded.get("Jx"),
         Jy=loaded.get("Jy"),
         Bz=loaded.get("Bz"),
-        Ex=loaded.get("Ex"),
-        Ey=loaded.get("Ey"),
+        Ex=loaded.get("Ex")/norm/c,
+        Ey=loaded.get("Ey")/norm/c,
         ne=loaded.get("ne"),
         n_photon=loaded.get("n_photon"),
         poynt_x=loaded.get("poynt_x"),
