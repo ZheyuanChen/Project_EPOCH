@@ -8,559 +8,353 @@ Interactive plasma data visualization CLI tool
 # Imports
 # ----------------------------
 import os
-import sys
 import argparse
 from collections import deque
-
 import numpy as np
 import h5py
 
 import matplotlib
-matplotlib.use("TkAgg")  # must come before pyplot
+matplotlib.use("TkAgg") 
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-import matplotlib.colors as clr
-
-
-
-
-me=9.1e-31
-c=3e8
-e=1.6e-19
-llambda=1e-6
-e0=8.85e-12
-omega=2*np.pi*c/llambda
-
-norm=(2*np.pi*me*c)/(llambda*e)
-#Bzz=Bz/norm
-#Exx=Ex/(norm*c)
-#Eyy=Ey/(norm*c)
-#Ezz=Ez/(norm*c)
-
-critical_density = e0*me*omega**2/e**2 #in 1/m3
-
-#ne_beam_norm = ne_beam/critical_density
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 # ----------------------------
-# Available variables to be displayed
+# Global Physics State
+# ----------------------------
+# These are calculated dynamically based on user input (wavelength)
+CONSTANTS = {} 
+
+def setup_physics(lambda_nm):
+    """
+    Recalculate physics constants and normalization factors based on laser wavelength.
+    """
+    lambda_m = lambda_nm * 1.0e-9
+    
+    c = 299792458.0
+    me = 9.10938356e-31
+    e = 1.60217663e-19
+    eps0 = 8.85418781e-12
+    
+    omega = 2 * np.pi * c / lambda_m
+    nc = eps0 * me * omega**2 / e**2  # Critical Density
+    
+    print(f"Physics Setup: Lambda = {lambda_nm} nm")
+    print(f"  -> Critical Density (nc) = {nc:.2e} m^-3")
+    print(f"  -> Laser Frequency (w)   = {omega:.2e} rad/s")
+
+    # Populate global constants dictionary
+    CONSTANTS["NC"] = nc
+    CONSTANTS["OMEGA"] = omega
+    
+    # Define Normalization Factors (SI -> Normalized)
+    # This dictionary maps variable names to their divisor
+    CONSTANTS["NORM_FACTORS"] = {
+        # Density -> n / nc
+        "ne": nc, 
+        "n_photon": nc,
+        
+        # Fields -> a0 (Relativistic amplitude) = e E / (me omega c)
+        "Ex": (me * omega * c) / e,
+        "Ey": (me * omega * c) / e,
+        "Ez": (me * omega * c) / e,
+        
+        # B field -> a0 = e B / (me omega)
+        "Bz": (me * omega) / e, 
+        "By": (me * omega) / e,
+        "Bx": (me * omega) / e,
+
+        # Current -> J / (e nc c)
+        "Jx": e * nc * c,
+        "Jy": e * nc * c,
+        
+        # Poynting -> Intensity / (me c^3 nc) 
+        "poynt_x": me * c**3 * nc, 
+        
+        # Energy (raw eV/Joule usually requires specific handling, keeping 1.0 for now)
+        "xye": 1.0 
+    }
+
+# ----------------------------
+# Configuration
 # ----------------------------
 VARIABLES = {
-    "Jx": {
-        "file": "Jx.hdf5",
-        "dataset": "Jx",
-        "pool": 1,
-        "range": [-50, 50],
-    },
-    "Jy": {
-        "file": "Jy.hdf5",
-        "dataset": "Jy",
-        "pool": 1,
-        "range": [-50, 50],
-    },
-    "Bz": {
-        "file": "Bz.hdf5",
-        "dataset": "Bz",
-        "pool": 1,
-        "range": [-50, 50],
-    },
-    "Ex": {
-        "file": "Ex.hdf5",
-        "dataset": "Ex",
-        "pool": 1,
-        "range": [-0.5, 0.5],
-    },
-    "Ey": {
-        "file": "Ey.hdf5",
-        "dataset": "Ey",
-        "pool": 1,
-        "range": [-0.5, 0.5],
-    },
-    "ne": {
-        "file": "x_y.hdf5",
-        "dataset": "xy",
-        "pool": 2,
-        "range": [0.01, 0.25],
-    },
-    "n_photon": {
-        "file": "n_photon.hdf5",
-        "dataset": "n_photon",
-        "pool": 2,
-        "range": [0.01, 0.25],
-    },
-    "poynt_x": {
-        "file": "poynt_x.hdf5",
-        "dataset": "poynt_x",
-        "pool": 3,
-        "range": [0.00001, 0.002],
-    },
-    "xye": {
-        "file": "x_y_Ekin.hdf5",
-        "dataset": "xy_Ekin",
-        "pool": 3,
-        "range": [0.00004, 0.004],
-        "postprocess": "xye",
-    },
+    "Jx":       {"file": "Jx.hdf5",       "dataset": "Jx",        "pool": 1},
+    "Jy":       {"file": "Jy.hdf5",       "dataset": "Jy",        "pool": 1},
+    "Bz":       {"file": "Bz.hdf5",       "dataset": "Bz",        "pool": 1},
+    "Ex":       {"file": "Ex.hdf5",       "dataset": "Ex",        "pool": 1},
+    "Ey":       {"file": "Ey.hdf5",       "dataset": "Ey",        "pool": 1},
+    "ne":       {"file": "n_e.hdf5",      "dataset": "ne",        "pool": 2}, 
+    "n_photon": {"file": "n_photon.hdf5", "dataset": "n_photon",  "pool": 2},
+    "poynt_x":  {"file": "poynt_x.hdf5",  "dataset": "poynt_x",   "pool": 3},
+    "xye":      {"file": "x_y_Ekin.hdf5", "dataset": "xy_Ekin",   "pool": 3},
 }
 
 # ----------------------------
 # Helper functions
 # ----------------------------
-def load_hdf5_file(filepath: str, dataset_name: str) -> np.ndarray:
-    """Load dataset from HDF5 file safely."""
-    if not os.path.isfile(filepath):
-        raise FileNotFoundError(f"{filepath} not found")
-    with h5py.File(filepath, "r") as f:
-        if dataset_name not in f:
-            raise KeyError(f"{dataset_name} not found in {filepath}")
-        data = f[dataset_name][:]  # type: ignore
-    return np.array(data)
+
+def normalize_data(key, data):
+    """Converts SI input data to normalized units using global constants."""
+    factors = CONSTANTS.get("NORM_FACTORS", {})
+    if key in factors:
+        norm = factors[key]
+        if norm != 0:
+            return data / norm
+    return data
 
 def probe_hdf5_variable(directory, file_name, dataset, label, verbose=True):
     path = os.path.join(directory, file_name)
     if not os.path.isfile(path):
-        if verbose:
-            print(f"⚠ Missing file: {file_name} ({label})")
+        if verbose: print(f"  [Skipped] {file_name} not found")
         return None
     try:
         with h5py.File(path, "r") as f:
-            if dataset not in f:
-                if verbose:
-                    print(f"⚠ Missing dataset '{dataset}' in {file_name}")
-                return None
-            return np.array(f[dataset][:], dtype=np.float32)
+            target_key = dataset
+            if target_key not in f:
+                keys = list(f.keys())
+                if keys:
+                    target_key = keys[0]
+                else:
+                    return None
+            
+            data = np.array(f[target_key][:], dtype=np.float32)
+            
+            # Normalize immediately using the calculated constants
+            data = normalize_data(label, data)
+            return data
+
     except Exception as e:
-        if verbose:
-            print(f"⚠ Failed loading {label}: {e}")
+        if verbose: print(f"  [Error] Failed loading {label}: {e}")
         return None
 
 def prepare_xye_arrays(xye: np.ndarray):
-    """Transform x_y_Ekin array into per-energy arrays and combine E>=2 MeV."""
-    labels = [f"{i} MeV" for i in range(xye.shape[-1])]
+    """Transform x_y_Ekin array into per-energy arrays."""
+    if xye.ndim != 4: 
+        return [], []
+        
+    labels = [f"Energy Bin {i}" for i in range(xye.shape[-1])]
     arrays = [xye[:, :, :, i] for i in range(xye.shape[-1])]
-    arrays[0] = sum(arrays[2:])
-    labels[0] = "E>=2 MeV"
+    
+    # Custom logic: If we have many bins, sum the high energy ones
+    if len(arrays) > 2:
+        arrays[0] = np.sum(xye[:,:,:,2:], axis=3)
+        labels[0] = "High Energy Sum"
+        
     return arrays, labels
 
 def setup_colormaps():
+    # 1. Dark background for fields
     cmap1 = plt.cm.gist_yarg
     my_cmap = cmap1(np.arange(cmap1.N))
     my_cmap[:, -1] = 0.8
-    cmap_new = ListedColormap(my_cmap)
+    cmap_density = ListedColormap(my_cmap)
 
+    # 2. Green transparent for overlays
     colors2 = [(0.2, 1, 0.01, (c+1)*0.5) for c in np.linspace(-1, 1, 200)]
-    cmap_new2 = clr.LinearSegmentedColormap.from_list('mycmap2', colors2, N=200)
+    cmap_green = LinearSegmentedColormap.from_list('mycmap2', colors2, N=200)
 
+    # 3. Diverging (Blue-Red) for Fields
     cmapB = plt.cm.coolwarm
-    my_cmapB = cmapB(np.arange(cmapB.N))
-    aB = [abs(i-128)/128 for i in range(cmapB.N)]
-    my_cmapB[:, -1] = aB
-    cmap_newB = ListedColormap(my_cmapB)
+    cmap_fields = ListedColormap(cmapB(np.arange(cmapB.N)))
 
-    return cmap_new, cmap_new2, cmap_newB
+    return cmap_density, cmap_green, cmap_fields
 
 # ----------------------------
 # Main class
 # ----------------------------
 class DianaInteractive:
-    def __init__(self, Jx, Jy, Bz, Ex, Ey, ne, n_photon, poynt_x, xye_arrays, xye_labels, time_step=0):
-        self.Jx = Jx
-        self.Jy = Jy
-        self.Bz = Bz
-        self.Ex = Ex
-        self.Ey = Ey
-        self.ne = ne
-        self.n_photon = n_photon
-        self.poynt_x = poynt_x
-        self.xye_arrays = xye_arrays
-        self.xye_labels = xye_labels
+    def __init__(self, data_dict, xye_arrays=None, xye_labels=None, time_step=0):
+        
+        self.data = data_dict
+        self.xye_arrays = xye_arrays or []
+        self.xye_labels = xye_labels or []
         self.time_step = time_step
+        
+        # --- Pools ---
+        # Pool 1: Fields
+        self.pool1 = deque()
+        self.pool1_meta = deque()
+        for key in ["Bz", "Ex", "Ey", "Jx", "Jy"]:
+            if self.data.get(key) is not None:
+                self.pool1.append(self.data[key])
+                self.pool1_meta.append(key)
 
-        from collections import deque
-        # ----------------------------
-        # Pools for rotation
-        # ----------------------------
-        self.pool = deque()
-        self.pool_labels = deque()
-        self.pool_ranges = deque()
-        for arr, label, rng in [(self.Jx, "Jx", [-0.2, 0.2]),
-                                (self.Jy, "Jy", [-0.2, 0.2]),
-                                (self.Bz, "Bz", [-0.2, 0.2]),
-                                (self.Ex, "Ex", [-0.5, 0.5]),
-                                (self.Ey, "Ey", [-0.5, 0.5])]:
-            if arr is not None:
-                self.pool.append(arr)
-                self.pool_labels.append(label)
-                self.pool_ranges.append(rng)
-
+        # Pool 2: Densities
         self.pool2 = deque()
-        self.pool2_labels = deque()
-        self.pool2_ranges = deque()
-        for arr, label, rng in [(self.ne, "ne", [0.01, 0.25]),
-                                (self.n_photon, "n_photon", [0.01, 0.25])]:
-            if arr is not None:
-                self.pool2.append(arr)
-                self.pool2_labels.append(label)
-                self.pool2_ranges.append(rng)
+        self.pool2_meta = deque()
+        for key in ["ne", "n_photon"]:
+            if self.data.get(key) is not None:
+                self.pool2.append(self.data[key])
+                self.pool2_meta.append(key)
 
+        # Pool 3: Overlays
         self.pool3 = deque()
-        self.pool3_labels = deque()
-        self.pool3_ranges = deque()
-        for arr, label, rng in [(self.poynt_x, "poynt_x", [0.00001, 0.002])]:
-            if arr is not None:
-                self.pool3.append(arr)
-                self.pool3_labels.append(label)
-                self.pool3_ranges.append(rng)
-        if self.xye_arrays:
-            for arr, label in zip(self.xye_arrays, self.xye_labels):
-                if arr.ndim == 3:
-                    self.pool3.append(arr)
-                    self.pool3_labels.append(label)
-                    self.pool3_ranges.append([0.00004, 0.004])
+        self.pool3_meta = deque()
+        if self.data.get("poynt_x") is not None:
+            self.pool3.append(self.data["poynt_x"])
+            self.pool3_meta.append("poynt_x")
+        for arr, lbl in zip(self.xye_arrays, self.xye_labels):
+            self.pool3.append(arr)
+            self.pool3_meta.append(lbl)
 
-        self.has_pool3 = len(self.pool3) > 0
+        # --- State ---
+        self.state = {
+            1: {"data": self.pool1[0] if self.pool1 else None, 
+                "label": self.pool1_meta[0] if self.pool1 else ""},
+            2: {"data": self.pool2[0] if self.pool2 else None, 
+                "label": self.pool2_meta[0] if self.pool2 else ""},
+            3: {"data": self.pool3[0] if self.pool3 else None, 
+                "label": self.pool3_meta[0] if self.pool3 else ""},
+        }
 
-        # ----------------------------
-        # Current displayed arrays
-        # ----------------------------
-        self.show_value = self.pool[0] if self.pool else None
-        self.show_label = self.pool_labels[0] if self.pool else ""
-        self.show_range = self.pool_ranges[0] if self.pool else [0, 1]
+        # --- Figure ---
+        self.cmap_density, self.cmap_green, self.cmap_fields = setup_colormaps()
+        self.fig, self.ax = plt.subplots(figsize=(10, 6))
+        
+        self.imgs = {1: None, 2: None, 3: None}
+        self.cbars = {1: None, 2: None, 3: None}
 
-        self.show_value2 = self.pool2[0] if self.pool2 else None
-        self.show_label2 = self.pool2_labels[0] if self.pool2 else ""
-        self.show_range2 = self.pool2_ranges[0] if self.pool2 else [0, 1]
-
-        if self.has_pool3:
-            self.show_value3 = self.pool3[0]
-            self.show_label3 = self.pool3_labels[0]
-            self.show_range3 = self.pool3_ranges[0]
-        else:
-            self.show_value3 = None
-            self.show_label3 = None
-            self.show_range3 = None
-
-        # ----------------------------
-        # Colormaps
-        # ----------------------------
-        self.cmap_new, self.cmap_new2, self.cmap_newB = setup_colormaps()
-        self.borders = (0.0001, 200, 0.0001, 24)
-
-        # ----------------------------
-        # Setup figure
-        # ----------------------------
-        self.fig, self.ax = plt.subplots()
-
-        # Pool 1
-        self.img1 = None
-        self.cbar1 = None
-        if self.pool:
-            self.img1 = self.ax.imshow(
-                np.transpose(self.show_value[self.time_step]),
-                cmap=self.cmap_newB,
-                vmin=self.show_range[0],
-                vmax=self.show_range[1],
-                extent=self.borders
+        # Init Images
+        if self.state[1]["data"] is not None:
+            self.imgs[1] = self.ax.imshow(
+                np.transpose(self.state[1]["data"][self.time_step]),
+                cmap=self.cmap_fields, origin='lower', aspect='auto'
             )
-            self.cbar1 = plt.colorbar(self.img1, fraction=0.02, pad=0.1)
-            self.cbar1.ax.set_title(f"${self.show_label}$")
+            self.cbars[1] = plt.colorbar(self.imgs[1], ax=self.ax, fraction=0.046, pad=0.04)
 
-        # Pool 2
-        self.img2 = None
-        self.cbar2 = None
-        if self.pool2:
-            self.img2 = self.ax.imshow(
-                np.transpose(self.show_value2[self.time_step]),
-                cmap=self.cmap_new,
-                vmin=self.show_range2[0],
-                vmax=self.show_range2[1],
-                extent=self.borders
+        if self.state[2]["data"] is not None:
+            self.imgs[2] = self.ax.imshow(
+                np.transpose(self.state[2]["data"][self.time_step]),
+                cmap=self.cmap_density, origin='lower', aspect='auto', alpha=0.6
             )
-            self.cbar2 = plt.colorbar(self.img2, fraction=0.02, pad=0.04)
-            self.cbar2.ax.set_title(f"${self.show_label2}$")
+            self.cbars[2] = plt.colorbar(self.imgs[2], ax=self.ax, fraction=0.046, pad=0.04)
 
-        # Pool 3
-        self.img3 = None
-        self.cbar3 = None
-        if self.has_pool3:
-            self.img3 = self.ax.imshow(
-                np.transpose(self.show_value3[self.time_step]),
-                cmap=self.cmap_new2,
-                vmin=self.show_range3[0],
-                vmax=self.show_range3[1],
-                extent=self.borders
+        if self.state[3]["data"] is not None:
+            self.imgs[3] = self.ax.imshow(
+                np.transpose(self.state[3]["data"][self.time_step]),
+                cmap=self.cmap_green, origin='lower', aspect='auto', alpha=0.5
             )
-            self.cbar3 = plt.colorbar(self.img3, fraction=0.02, pad=0.06)
-            self.cbar3.ax.set_title(f"${self.show_label3}$")
+            self.cbars[3] = plt.colorbar(self.imgs[3], ax=self.ax, fraction=0.046, pad=0.04)
 
-        # ----------------------------
-        # Connect events
-        # ----------------------------
         self.fig.canvas.mpl_connect('key_press_event', self.onclick)
-
-        # Show figure
+        
+        self.refresh_plot()
         plt.show()
 
-    # ----------------------------
-    # Refresh plot
-    # ----------------------------
-     # ----------------------------
-    # Refresh plot
-    # ----------------------------
+    def get_auto_clim(self, data, symmetric=False):
+        vmin, vmax = np.percentile(data, [1, 99])
+        if symmetric:
+            abs_max = max(abs(vmin), abs(vmax))
+            return -abs_max, abs_max
+        return vmin, vmax
+
     def refresh_plot(self):
+        title_parts = [f"T={self.time_step}"]
 
-        # ----------------------------
-        # Pool 1 (fields → symmetric scaling)
-        # ----------------------------
-        if self.img1 is not None:
-            data = self.show_value[self.time_step]
-            data2D = np.transpose(data)
+        # Update Loop for all 3 pools
+        for idx in [1, 2, 3]:
+            if self.imgs[idx] is not None:
+                data_vol = self.state[idx]["data"]
+                t = min(self.time_step, data_vol.shape[0]-1)
+                data_slice = np.transpose(data_vol[t])
+                
+                self.imgs[idx].set_data(data_slice)
+                
+                # Auto Scale
+                is_sym = (idx == 1) # Field is symmetric
+                vmin, vmax = self.get_auto_clim(data_slice, symmetric=is_sym)
+                self.imgs[idx].set_clim(vmin, vmax)
+                
+                # Label
+                unit = "a0" if idx == 1 else ("n/nc" if idx == 2 else "arb")
+                self.cbars[idx].set_label(f"{self.state[idx]['label']} ({unit})")
+                title_parts.append(self.state[idx]['label'])
 
-            self.img1.set_data(data2D)
-
-            # Symmetric auto scaling
-            max_abs = np.nanmax(np.abs(data2D))
-            if max_abs == 0:
-                max_abs = 1e-12
-
-            self.img1.set_clim(vmin=-max_abs, vmax=max_abs)
-
-            if self.cbar1 is not None:
-                self.cbar1.update_normal(self.img1)
-                self.cbar1.ax.set_title(f"${self.show_label}$")
-
-        # ----------------------------
-        # Pool 2 (densities → percentile scaling)
-        # ----------------------------
-        if self.img2 is not None:
-            data = self.show_value2[self.time_step]
-            data2D = np.transpose(data)
-
-            self.img2.set_data(data2D)
-
-            vmin, vmax = np.percentile(data2D, [1, 99])
-            if vmin == vmax:
-                vmax = vmin + 1e-12
-
-            self.img2.set_clim(vmin=vmin, vmax=vmax)
-
-            if self.cbar2 is not None:
-                self.cbar2.update_normal(self.img2)
-                self.cbar2.ax.set_title(f"${self.show_label2}$")
-
-        # ----------------------------
-        # Pool 3 (auto detect signed vs positive)
-        # ----------------------------
-        if self.img3 is not None:
-            data = self.show_value3[self.time_step]
-            data2D = np.transpose(data)
-
-            self.img3.set_data(data2D)
-
-            if np.nanmin(data2D) < 0:
-                # Signed → symmetric scaling
-                max_abs = np.nanmax(np.abs(data2D))
-                if max_abs == 0:
-                    max_abs = 1e-12
-                self.img3.set_clim(vmin=-max_abs, vmax=max_abs)
-            else:
-                # Positive → percentile scaling
-                vmin, vmax = np.percentile(data2D, [1, 99])
-                if vmin == vmax:
-                    vmax = vmin + 1e-12
-                self.img3.set_clim(vmin=vmin, vmax=vmax)
-
-            if self.cbar3 is not None:
-                self.cbar3.update_normal(self.img3)
-                self.cbar3.ax.set_title(f"${self.show_label3}$")
-
-        # ----------------------------
-        # Title
-        # ----------------------------
-        if self.has_pool3:
-            title = f'{self.show_label3}  Sum={np.sum(self.show_value3[self.time_step]):.3e}  timestep={self.time_step*10:.1f}T'
-        else:
-            title = f'timestep={self.time_step*10:.1f}T'
-
-        self.ax.set_title(title)
+        self.ax.set_title(" | ".join(title_parts))
         self.fig.canvas.draw_idle()
 
-        # Pool 1
-        if self.img1 is not None:
-            self.img1.set_data(np.transpose(self.show_value[self.time_step]))
-            self.img1.set_clim(vmin=self.show_range[0], vmax=self.show_range[1])
-            if self.cbar1 is not None:
-                self.cbar1.update_normal(self.img1)
-                self.cbar1.ax.set_title(f"${self.show_label}$")
-                self.cbar1.set_ticks(np.linspace(self.show_range[0], self.show_range[1], 5))
+    def rotate_pool(self, pool_idx, direction):
+        pool = getattr(self, f"pool{pool_idx}")
+        meta = getattr(self, f"pool{pool_idx}_meta")
+        
+        if pool:
+            pool.rotate(direction)
+            meta.rotate(direction)
+            self.state[pool_idx]["data"] = pool[0]
+            self.state[pool_idx]["label"] = meta[0]
+            self.refresh_plot()
 
-        # Pool 2
-        if self.img2 is not None:
-            self.img2.set_data(np.transpose(self.show_value2[self.time_step]))
-            self.img2.set_clim(vmin=self.show_range2[0], vmax=self.show_range2[1])
-            if self.cbar2 is not None:
-                self.cbar2.update_normal(self.img2)
-                self.cbar2.ax.set_title(f"${self.show_label2}$")
-                self.cbar2.set_ticks(np.linspace(self.show_range2[0], self.show_range2[1], 5))
-
-        # Pool 3
-        if self.img3 is not None:
-            self.img3.set_data(np.transpose(self.show_value3[self.time_step]))
-            self.img3.set_clim(vmin=self.show_range3[0], vmax=self.show_range3[1])
-            if self.cbar3 is not None:
-                self.cbar3.update_normal(self.img3)
-                self.cbar3.ax.set_title(f"${self.show_label3}$")
-                self.cbar3.set_ticks(np.linspace(self.show_range3[0], self.show_range3[1], 5))
-
-        # Title
-        if self.has_pool3:
-            title = f'{self.show_label3}  Ne={np.sum(self.show_value3[self.time_step]):.3f}  timestep={self.time_step*10:.1f}T'
-        else:
-            title = f'timestep={self.time_step*10:.1f}T'
-
-        self.ax.set_title(title)
-        self.fig.canvas.draw_idle()
-
-    # ----------------------------
-    # Key press handler
-    # ----------------------------
     def onclick(self, event):
-        # Time navigation
+        # Time
         if event.key == 'right':
-            self.time_step = min(self.time_step + 1, self.show_value.shape[0]-1)
+            self.time_step += 1
+            self.refresh_plot()
         elif event.key == 'left':
-            self.time_step = max(self.time_step - 1, 0)
+            self.time_step = max(0, self.time_step - 1)
+            self.refresh_plot()
         elif event.key == 'shift+right':
-            self.time_step = min(self.time_step + 10, self.show_value.shape[0]-1)
+            self.time_step += 10
+            self.refresh_plot()
         elif event.key == 'shift+left':
-            self.time_step = max(self.time_step - 10, 0)
+            self.time_step = max(0, self.time_step - 10)
+            self.refresh_plot()
 
-        # Pool 1 rotation
-        elif event.key == 'm':
-            self.pool.rotate(-1)
-            self.pool_labels.rotate(-1)
-            self.pool_ranges.rotate(-1)
-            self.show_value = self.pool[0]
-            self.show_label = self.pool_labels[0]
-            self.show_range = self.pool_ranges[0]
-        elif event.key == 'n':
-            self.pool.rotate(1)
-            self.pool_labels.rotate(1)
-            self.pool_ranges.rotate(1)
-            self.show_value = self.pool[0]
-            self.show_label = self.pool_labels[0]
-            self.show_range = self.pool_ranges[0]
-
-        # Pool 2 rotation
-        elif event.key == 'a':
-            self.pool2.rotate(-1)
-            self.pool2_labels.rotate(-1)
-            self.pool2_ranges.rotate(-1)
-            self.show_value2 = self.pool2[0]
-            self.show_label2 = self.pool2_labels[0]
-            self.show_range2 = self.pool2_ranges[0]
-        elif event.key == 'd':
-            self.pool2.rotate(1)
-            self.pool2_labels.rotate(1)
-            self.pool2_ranges.rotate(1)
-            self.show_value2 = self.pool2[0]
-            self.show_label2 = self.pool2_labels[0]
-            self.show_range2 = self.pool2_ranges[0]
-
-        # Pool 3 rotation
-        elif event.key == 'ctrl+m' and self.has_pool3:
-            self.pool3.rotate(-1)
-            self.pool3_labels.rotate(-1)
-            self.pool3_ranges.rotate(-1)
-            self.show_value3 = self.pool3[0]
-            self.show_label3 = self.pool3_labels[0]
-            self.show_range3 = self.pool3_ranges[0]
-        elif event.key == 'ctrl+n' and self.has_pool3:
-            self.pool3.rotate(1)
-            self.pool3_labels.rotate(1)
-            self.pool3_ranges.rotate(1)
-            self.show_value3 = self.pool3[0]
-            self.show_label3 = self.pool3_labels[0]
-            self.show_range3 = self.pool3_ranges[0]
-
-        # ----------------------------
-        # Toggle pool visibility
-        # ----------------------------
-        elif event.key == '1' and self.img1 is not None:
-            visible = not self.img1.get_visible()
-            self.img1.set_visible(visible)
-            if self.cbar1 is not None:
-                self.cbar1.ax.set_visible(visible)
-
-        elif event.key == '2' and self.img2 is not None:
-            visible = not self.img2.get_visible()
-            self.img2.set_visible(visible)
-            if self.cbar2 is not None:
-                self.cbar2.ax.set_visible(visible)
-
-        elif event.key == '3' and self.img3 is not None:
-            visible = not self.img3.get_visible()
-            self.img3.set_visible(visible)
-            if self.cbar3 is not None:
-                self.cbar3.ax.set_visible(visible)
-
-        # Refresh plot
-        self.refresh_plot()
+        # Rotation
+        elif event.key == 'n': self.rotate_pool(1, 1)
+        elif event.key == 'm': self.rotate_pool(1, -1)
+        elif event.key == 'd': self.rotate_pool(2, 1)
+        elif event.key == 'a': self.rotate_pool(2, -1)
+        elif event.key == 'ctrl+n': self.rotate_pool(3, 1)
+        elif event.key == 'ctrl+m': self.rotate_pool(3, -1)
+        
+        # Visibility
+        elif event.key == '1' and self.imgs[1]:
+            self.imgs[1].set_visible(not self.imgs[1].get_visible())
+            self.fig.canvas.draw_idle()
+        elif event.key == '2' and self.imgs[2]:
+            self.imgs[2].set_visible(not self.imgs[2].get_visible())
+            self.fig.canvas.draw_idle()
+        elif event.key == '3' and self.imgs[3]:
+            self.imgs[3].set_visible(not self.imgs[3].get_visible())
+            self.fig.canvas.draw_idle()
 
 
 # ----------------------------
 # CLI entry point
 # ----------------------------
 def run_cli():
-    parser = argparse.ArgumentParser(description="Interactive plasma data visualisation CLI")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--dir", type=str, default=".", help="Directory with HDF5 files")
-    parser.add_argument("--time_step", type=int, default=0)
+    parser.add_argument("--lambda", dest="lambda_nm", type=float, default=1000.0, 
+                        help="Laser wavelength in nm (default: 1000)")
     args = parser.parse_args()
+    
+    # 1. Setup Physics with user wavelength
+    setup_physics(args.lambda_nm)
 
-    # Load data
-    loaded = {}
-    print("Probing HDF5 variables:")
+    # 2. Load Data (Normalization happens here now)
+    print(f"Loading data from {args.dir}...")
+    loaded_data = {}
+    
     for key, meta in VARIABLES.items():
         data = probe_hdf5_variable(
-            args.dir,
-            meta["file"],
-            meta["dataset"],
-            key,
-            verbose=True
+            args.dir, meta["file"], meta["dataset"], key, verbose=True
         )
         if data is not None:
-            loaded[key] = data
+            loaded_data[key] = data
 
-    if not loaded:
-        raise RuntimeError("No valid HDF5 variables found.")
+    if not loaded_data:
+        print("Error: No data found.")
+        return
 
-    # --------------------------------------------------------
-    # Special post-processing
-    # --------------------------------------------------------
-    xye_arrays = []
-    xye_labels = []
-    if "xye" in loaded:
-        xye_arrays, xye_labels = prepare_xye_arrays(loaded["xye"])
+    # 3. Special Processing
+    xye_arrays, xye_labels = [], []
+    if "xye" in loaded_data:
+        xye_arrays, xye_labels = prepare_xye_arrays(loaded_data["xye"])
+        del loaded_data["xye"] 
 
-    # --------------------------------------------------------
-    # Launch interactive viewer
-    # --------------------------------------------------------
-    DianaInteractive(
-        Jx=loaded.get("Jx"),
-        Jy=loaded.get("Jy"),
-        Bz=loaded.get("Bz"),
-        Ex=loaded.get("Ex"),
-        Ey=loaded.get("Ey"),
-        ne=loaded.get("ne"),
-        n_photon=loaded.get("n_photon"),
-        poynt_x=loaded.get("poynt_x"),
-        xye_arrays=xye_arrays,
-        xye_labels=xye_labels,
-        time_step=args.time_step,
-    )
+    # 4. Launch
+    DianaInteractive(loaded_data, xye_arrays, xye_labels)
 
-
-# ----------------------------
-# If run directly
-# ----------------------------
 if __name__ == "__main__":
     run_cli()
