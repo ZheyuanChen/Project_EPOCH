@@ -303,7 +303,87 @@ class DianaInteractive:
     # ----------------------------
     # Refresh plot
     # ----------------------------
+     # ----------------------------
+    # Refresh plot
+    # ----------------------------
     def refresh_plot(self):
+
+        # ----------------------------
+        # Pool 1 (fields → symmetric scaling)
+        # ----------------------------
+        if self.img1 is not None:
+            data = self.show_value[self.time_step]
+            data2D = np.transpose(data)
+
+            self.img1.set_data(data2D)
+
+            # Symmetric auto scaling
+            max_abs = np.nanmax(np.abs(data2D))
+            if max_abs == 0:
+                max_abs = 1e-12
+
+            self.img1.set_clim(vmin=-max_abs, vmax=max_abs)
+
+            if self.cbar1 is not None:
+                self.cbar1.update_normal(self.img1)
+                self.cbar1.ax.set_title(f"${self.show_label}$")
+
+        # ----------------------------
+        # Pool 2 (densities → percentile scaling)
+        # ----------------------------
+        if self.img2 is not None:
+            data = self.show_value2[self.time_step]
+            data2D = np.transpose(data)
+
+            self.img2.set_data(data2D)
+
+            vmin, vmax = np.percentile(data2D, [1, 99])
+            if vmin == vmax:
+                vmax = vmin + 1e-12
+
+            self.img2.set_clim(vmin=vmin, vmax=vmax)
+
+            if self.cbar2 is not None:
+                self.cbar2.update_normal(self.img2)
+                self.cbar2.ax.set_title(f"${self.show_label2}$")
+
+        # ----------------------------
+        # Pool 3 (auto detect signed vs positive)
+        # ----------------------------
+        if self.img3 is not None:
+            data = self.show_value3[self.time_step]
+            data2D = np.transpose(data)
+
+            self.img3.set_data(data2D)
+
+            if np.nanmin(data2D) < 0:
+                # Signed → symmetric scaling
+                max_abs = np.nanmax(np.abs(data2D))
+                if max_abs == 0:
+                    max_abs = 1e-12
+                self.img3.set_clim(vmin=-max_abs, vmax=max_abs)
+            else:
+                # Positive → percentile scaling
+                vmin, vmax = np.percentile(data2D, [1, 99])
+                if vmin == vmax:
+                    vmax = vmin + 1e-12
+                self.img3.set_clim(vmin=vmin, vmax=vmax)
+
+            if self.cbar3 is not None:
+                self.cbar3.update_normal(self.img3)
+                self.cbar3.ax.set_title(f"${self.show_label3}$")
+
+        # ----------------------------
+        # Title
+        # ----------------------------
+        if self.has_pool3:
+            title = f'{self.show_label3}  Sum={np.sum(self.show_value3[self.time_step]):.3e}  timestep={self.time_step*10:.1f}T'
+        else:
+            title = f'timestep={self.time_step*10:.1f}T'
+
+        self.ax.set_title(title)
+        self.fig.canvas.draw_idle()
+
         # Pool 1
         if self.img1 is not None:
             self.img1.set_data(np.transpose(self.show_value[self.time_step]))
@@ -468,8 +548,8 @@ def run_cli():
         Jx=loaded.get("Jx"),
         Jy=loaded.get("Jy"),
         Bz=loaded.get("Bz"),
-        Ex=loaded.get("Ex")/norm/c,
-        Ey=loaded.get("Ey")/norm/c,
+        Ex=loaded.get("Ex"),
+        Ey=loaded.get("Ey"),
         ne=loaded.get("ne"),
         n_photon=loaded.get("n_photon"),
         poynt_x=loaded.get("poynt_x"),

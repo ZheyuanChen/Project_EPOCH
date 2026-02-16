@@ -41,7 +41,6 @@ VARIABLES = {
     #"xy_Ekin": ("Derived_Electron_Kinetic_Energy", "x_y_Ekin.hdf5"),
     "poynt_x": ("Derived_Poynting_Flux_x", "poynt_x.hdf5"),
     "xy_Ekin": ("Derived_Average_Particle_Energy_Electron", "x_y_Ekin.hdf5"),
-    
     # future additions go here
 }
 
