@@ -452,35 +452,49 @@ def save_2d_animation_to_gif():
     gif_filename = args.output if args.output else f"{variable_name}_animation.gif"
 
     print(f"Creating animation for '{variable_name}'...")
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    fps = int(1 / args.duration)
-    writer = PillowWriter(fps=fps)
+        # 3. Set up figure and initial frame (REVERTED TO YOUR ORIGINAL)
+    # ----------------------------------------------------------
+    fig, ax = plt.subplots(figsize=(6, 5))
 
     var0 = getattr(data_list[0], variable_name)
-
     sh.plot2d(var0, figure=fig, subplot=ax)
+    #sh.plot_auto(var0, figure=fig, subplot=ax) # Plot_auto does not work.
 
-    
-    # 4. Animation Loop
+    # ----------------------------------------------------------
+    # 4. Animation over all SDF files (REVERTED TO YOUR ORIGINAL)
+    # ----------------------------------------------------------
+
+    print("Scanning data to lock color scale (this prevents the flashing)...")
+    global_min = float('inf')
+    global_max = float('-inf')
+    for data in data_list:
+        if hasattr(data, variable_name):
+            val = getattr(data, variable_name).data
+            global_min = min(global_min, val.min())
+            global_max = max(global_max, val.max())
+
+    writer = PillowWriter(fps=int(1 / 0.1))
+
     with writer.saving(fig, gif_filename, dpi=150):
         for i, data in enumerate(data_list):
-            #ax.clear() # Clear axis instead of whole figure to keep window stable. This line does not render the colour bar at all.
-            #fig.clf() # Also does not work
             plt.clf()
-            try:
-                var = getattr(data, variable_name)
-                # sh.plot2d handles the units and labels automatically
-                sh.plot2d(var, figure=fig, subplot=ax, interpolation='bicubic')
-                ax.set_title(f"{variable_name} | Frame {i}")
-                
-                writer.grab_frame()
-                if i % 5 == 0:
-                    print(f"  Frame {i}/{len(data_list)} added...")
-            except AttributeError:
-                print(f"Warning: Variable {variable_name} not found in frame {i}. Skipping.")
+            var = getattr(data, variable_name)
+            #sh.plot_auto(var, figure=fig, subplot=ax) # Plot_auto does not work.
+            sh.plot2d(var, interpolation='bicubic')
+            plt.title(f"Frame {i}")
 
-    plt.close(fig)
+            # --- THE FIX ---
+            # Lock the margins so the plot box stays exactly the same size 
+            # and position on every frame, regardless of colorbar text width.
+            #plt.subplots_adjust(left=0.15, right=0.85, bottom=0.15, top=0.90)
+
+            writer.grab_frame()
+            
+            # Just printing progress so you know it hasn't frozen
+            if i % 10 == 0:
+                print(f"  Frame {i}/{len(data_list)} added...")
+
+    print(f"\nSuccessfully saved to: {os.path.abspath(gif_filename)}")
     print(f"\nSuccessfully saved to: {os.path.abspath(gif_filename)}")
 
 #def save_2d_animation_to_gif():

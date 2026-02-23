@@ -28,8 +28,8 @@ dependencies = [
 ]
 
 [project.scripts]
-save_gif_2d = "visualisation.animate:save_2d_animation_to_gif"
+save_gif_2d_unstable = "visualisation.save_2d_gif:save_2d_animation_to_gif_unstable"
 vis = "visualisation.diana_visualisation:run_cli"
 diana_test = "visualisation.diana_visualisation_stable_version:run_cli"
 sdf-convert = "post_processing.converter:main"
-save_gif ="visualisation.save_2d_gif:save_2d_animation_to_gif"
+save_gif_2d ="visualisation.save_2d_gif:save_2d_animation_to_gif"

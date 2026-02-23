@@ -1,0 +1,37 @@
+ EPOCH2D v4.19.7   v4.19.7-0-g666daabe-dirty 1771862280.695            
+
+ Loaded 3750000 particles of species "electron"
+ Loaded 3750000 particles of species "proton"
+Wrote large  ,           0000.sdf at time  0.8957E-15 and iteration       0
+Wrote normal ,           0001.sdf at time  0.5016E-13 and iteration      28
+Wrote normal ,           0002.sdf at time  0.1003E-12 and iteration      56
+Wrote normal ,           0003.sdf at time  0.1505E-12 and iteration      84
+Wrote normal ,           0004.sdf at time  0.2006E-12 and iteration     112
+Wrote normal ,           0005.sdf at time  0.2508E-12 and iteration     140
+Wrote normal ,           0006.sdf at time  0.3010E-12 and iteration     168
+Wrote normal ,           0007.sdf at time  0.3511E-12 and iteration     196
+Wrote normal ,           0008.sdf at time  0.4013E-12 and iteration     224
+Wrote normal ,           0009.sdf at time  0.4514E-12 and iteration     252
+Wrote large  ,           0010.sdf at time  0.5016E-12 and iteration     280
+Wrote normal ,           0011.sdf at time  0.5518E-12 and iteration     308
+Wrote normal ,           0012.sdf at time  0.6001E-12 and iteration     335
+Wrote normal ,           0013.sdf at time  0.6503E-12 and iteration     363
+Wrote normal ,           0014.sdf at time  0.7004E-12 and iteration     391
+Wrote normal ,           0015.sdf at time  0.7506E-12 and iteration     419
+Wrote normal ,           0016.sdf at time  0.8008E-12 and iteration     447
+Wrote normal ,           0017.sdf at time  0.8509E-12 and iteration     475
+Wrote normal ,           0018.sdf at time  0.9011E-12 and iteration     503
+Wrote normal ,           0019.sdf at time  0.9512E-12 and iteration     531
+Wrote large  ,           0020.sdf at time  0.1001E-11 and iteration     559
+Wrote normal ,           0021.sdf at time  0.1052E-11 and iteration     587
+Wrote normal ,           0022.sdf at time  0.1102E-11 and iteration     615
+Wrote normal ,           0023.sdf at time  0.1150E-11 and iteration     642
+Wrote normal ,           0024.sdf at time  0.1200E-11 and iteration     670
+Wrote normal ,           0025.sdf at time  0.1250E-11 and iteration     698
+Wrote normal ,           0026.sdf at time  0.1301E-11 and iteration     726
+Wrote normal ,           0027.sdf at time  0.1351E-11 and iteration     754
+Wrote normal ,           0028.sdf at time  0.1401E-11 and iteration     782
+Wrote normal ,           0029.sdf at time  0.1451E-11 and iteration     810
+Wrote large  ,           0030.sdf at time  0.1501E-11 and iteration     838
+Wrote normal ,           0031.sdf at time  0.1551E-11 and iteration     866
+Wrote large  ,           0032.sdf at time  0.1602E-11 and iteration     894
