@@ -1,3 +1,5 @@
+# This is the legacy script provided by Diana for sdf-to-hdf5 conversion. I am not sure if I changed it or not, but I will keep it here for reference. The new script is epoch_postprocess.py, which is more streamlined and only extracts the necessary variables for our analysis.
+
 import h5py
 import numpy as np
 import os

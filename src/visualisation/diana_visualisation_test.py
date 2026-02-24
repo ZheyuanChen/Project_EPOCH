@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 diana_visualisation.py
-Fast Animation / Pre-Loaded Version with Auto-Deck Parsing & Moving Window
+Auto-Deck Parsing & Dual Viewer (Static / Moving Window)
 """
 
 import os
@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 # ----------------------------
-# Global Physics State
+# Global Physics Setup
 # ----------------------------
 CONSTANTS = {} 
 
@@ -43,62 +43,110 @@ def setup_physics(lambda_nm):
         "xye": 1.0 
     }
 
-# ----------------------------
-# Input Deck Parser
-# ----------------------------
-def eval_epoch_math(expr):
-    """Safely evaluates EPOCH mathematical strings like '340 * femto' or 'c * 0.87'"""
-    expr = expr.lower()
-    replacements = {
-        r'\bc\b': '299792458.0',
-        r'\bfemto\b': '1e-15',
-        r'\bpico\b': '1e-12',
-        r'\bnano\b': '1e-9',
-        r'\bmicro\b': '1e-6',
-        r'\bmicron\b': '1e-6',
-        r'\bmilli\b': '1e-3'
-    }
-    for key, val in replacements.items():
-        expr = re.sub(key, val, expr)
-    
-    try:
-        # Evaluate the math safely (prevents malicious code execution)
-        return eval(expr, {"__builtins__": None}, {})
-    except Exception:
-        return None
+def setup_colormaps():
+    cmap1 = plt.cm.gist_yarg
+    my_cmap = cmap1(np.arange(cmap1.N))
+    my_cmap[:, -1] = 0.8
+    cmap_density = ListedColormap(my_cmap)
 
+    colors2 = [(0.2, 1, 0.01, (c+1)*0.5) for c in np.linspace(-1, 1, 200)]
+    cmap_green = LinearSegmentedColormap.from_list('mycmap2', colors2, N=200)
+
+    cmapB = plt.cm.coolwarm
+    cmap_fields = ListedColormap(cmapB(np.arange(cmapB.N)))
+
+    return cmap_density, cmap_green, cmap_fields
+
+# ----------------------------
+# Smart Deck Parser
+# ----------------------------
 def parse_input_deck(base_dir):
-    """Looks for input.deck and extracts lambda, window velocity, and start time."""
-    # Assuming dir is .../sth/hdf5_output, input.deck is in .../sth/sdf_files/input.deck
     parent_dir = os.path.dirname(os.path.abspath(base_dir))
     deck_path = os.path.join(parent_dir, "sdf_files", "input.deck")
     
-    params = {}
     if not os.path.exists(deck_path):
         print(f"  [Parser] No input.deck found at {deck_path}")
-        return params
+        return {}
 
-    print(f"  [Parser] Found input.deck at {deck_path}. Scanning...")
+    print(f"  [Parser] Found input.deck at {deck_path}. Analyzing equations...")
+    
+    raw_vars = {}
+    current_block = None
+    is_normal_output = False
+    normal_dt_raw = None
+
     with open(deck_path, 'r') as f:
         for line in f:
-            # Strip out comments and whitespace
-            line = line.split('!')[0].strip()
-            if '=' not in line:
+            line = line.split('!')[0].strip() 
+            if not line: continue
+            
+            if line.lower().startswith('begin:'):
+                current_block = line.split(':')[1].strip().lower()
+                is_normal_output = False
                 continue
-                
+            if line.lower().startswith('end:'):
+                current_block = None
+                is_normal_output = False
+                continue
+
+            if '=' not in line: continue
             key, val = [x.strip().lower() for x in line.split('=', 1)]
             
-            # Match keywords
-            if key in ['lambda', 'window_v_x', 'window_start_time', 'win_start']:
-                num_val = eval_epoch_math(val)
-                if num_val is not None:
-                    if key == 'lambda':
-                        params['lambda_nm'] = num_val * 1e9 # Convert m to nm
-                    elif key == 'window_v_x':
-                        params['window_v_x'] = num_val
-                    elif key in ['window_start_time', 'win_start']:
-                        params['window_start'] = num_val
-                        
+            if key == 'move_window':
+                val_clean = val.strip('. "\'').lower()
+                raw_vars['move_window'] = 'True' if val_clean in ['t', 'true'] else 'False'
+                continue
+
+            if current_block == 'output' and key == 'name' and val.strip('"\'') == 'normal':
+                is_normal_output = True
+                
+            if key == 'dt_snapshot':
+                if current_block == 'output' and is_normal_output:
+                    normal_dt_raw = val
+            else:
+                raw_vars[key] = val
+
+    if normal_dt_raw:
+        raw_vars['normal_dt_snapshot'] = normal_dt_raw
+
+    resolved_vars = {
+        'c': 299792458.0, 'femto': 1e-15, 'pico': 1e-12, 
+        'nano': 1e-9, 'micro': 1e-6, 'micron': 1e-6, 'milli': 1e-3
+    }
+    
+    unresolved = raw_vars.copy()
+    
+    for _ in range(10):
+        progress = False
+        for k, expr in list(unresolved.items()):
+            current_expr = expr
+            for res_k, res_v in sorted(resolved_vars.items(), key=lambda x: len(x[0]), reverse=True):
+                current_expr = re.sub(rf'\b{res_k}\b', f"({res_v})", current_expr)
+            try:
+                val = eval(current_expr, {"__builtins__": None}, {})
+                resolved_vars[k] = val
+                del unresolved[k]
+                progress = True
+            except Exception:
+                pass 
+                
+        if not progress and not unresolved: break
+
+    params = {}
+    params['move_window'] = resolved_vars.get('move_window', False)
+
+    if 'lambda' in resolved_vars: params['lambda_nm'] = resolved_vars['lambda'] * 1e9
+    if 'window_v_x' in resolved_vars: params['window_v_x'] = resolved_vars['window_v_x']
+    if 'normal_dt_snapshot' in resolved_vars: params['dt'] = resolved_vars['normal_dt_snapshot']
+    
+    for k in ['x_min', 'x_max', 'y_min', 'y_max']:
+        if k in resolved_vars: params[k] = resolved_vars[k]
+
+    if 'window_start' in resolved_vars:
+        params['window_start'] = resolved_vars['window_start']
+    elif 'window_start_time' in resolved_vars:
+        params['window_start'] = resolved_vars['window_start_time']
+
     return params
 
 # ----------------------------
@@ -116,7 +164,7 @@ def load_and_downsample(filepath, dataset_name, label, norm_key, stride):
             if norm_key in factors and factors[norm_key] != 0:
                 data /= factors[norm_key]
             
-            print(f"Done. Shape: {data.shape} ({data.nbytes / 1024**2:.1f} MB)")
+            print(f"Done. Shape: {data.shape}")
             return data
     except Exception as e:
         print(f"\n  [Error] Failed loading {label}: {e}")
@@ -129,7 +177,7 @@ def load_xye_sum(filepath, dataset_name, stride):
             print(f"  ... Loading Kinetic Energy Sum ... ", end="", flush=True)
             raw_data = dset[:, ::stride, ::stride, 2:] 
             data = np.sum(raw_data, axis=-1).astype(np.float32)
-            print(f"Done. Shape: {data.shape} ({data.nbytes / 1024**2:.1f} MB)")
+            print(f"Done. Shape: {data.shape}")
             return data
     except Exception as e:
         return None
@@ -146,25 +194,109 @@ VARIABLES = {
     "xye":      {"file": "x_y_Ekin.hdf5", "dataset": "xy_Ekin",   "pool": 3},
 }
 
-def setup_colormaps():
-    cmap1 = plt.cm.gist_yarg
-    my_cmap = cmap1(np.arange(cmap1.N))
-    my_cmap[:, -1] = 0.8
-    cmap_density = ListedColormap(my_cmap)
-
-    colors2 = [(0.2, 1, 0.01, (c+1)*0.5) for c in np.linspace(-1, 1, 200)]
-    cmap_green = LinearSegmentedColormap.from_list('mycmap2', colors2, N=200)
-
-    cmapB = plt.cm.coolwarm
-    cmap_fields = ListedColormap(cmapB(np.arange(cmapB.N)))
-
-    return cmap_density, cmap_green, cmap_fields
-
 # ----------------------------
-# Main Visualization
+# Interactive Viewers
 # ----------------------------
-class DianaInteractive:
+class DianaInteractiveStatic:
+    """Standard viewer for static boxes (no window shifting)"""
+    def __init__(self, pools, time_step=0):
+        print("  [Viewer] Initializing Standard Static Viewer...")
+        self.pools = pools 
+        self.time_step = time_step
+        
+        self.pool1_meta = deque(k for k in pools[1].keys())
+        self.pool2_meta = deque(k for k in pools[2].keys())
+        self.pool3_meta = deque(k for k in pools[3].keys())
+
+        self.sel = {
+            1: self.pool1_meta[0] if self.pool1_meta else None,
+            2: self.pool2_meta[0] if self.pool2_meta else None,
+            3: self.pool3_meta[0] if self.pool3_meta else None
+        }
+
+        self.cmap_density, self.cmap_green, self.cmap_fields = setup_colormaps()
+        self.fig, self.ax = plt.subplots(figsize=(10, 6))
+        
+        self.imgs = {1: None, 2: None, 3: None}
+        self.cbars = {1: None, 2: None, 3: None}
+
+        dummy = np.zeros((100,100))
+        
+        if self.sel[1]:
+            self.imgs[1] = self.ax.imshow(dummy, cmap=self.cmap_fields, origin='lower', aspect='auto')
+            self.cbars[1] = plt.colorbar(self.imgs[1], ax=self.ax, fraction=0.046, pad=0.04)
+        if self.sel[2]:
+            self.imgs[2] = self.ax.imshow(dummy, cmap=self.cmap_density, origin='lower', aspect='auto', alpha=0.6)
+            self.cbars[2] = plt.colorbar(self.imgs[2], ax=self.ax, fraction=0.046, pad=0.04)
+        if self.sel[3]:
+            self.imgs[3] = self.ax.imshow(dummy, cmap=self.cmap_green, origin='lower', aspect='auto', alpha=0.5)
+            self.cbars[3] = plt.colorbar(self.imgs[3], ax=self.ax, fraction=0.046, pad=0.04)
+
+        self.ax.set_xlabel("x [pixels]")
+        self.ax.set_ylabel("y [pixels]")
+        
+        self.fig.canvas.mpl_connect('key_press_event', self.onclick)
+        self.refresh_plot()
+        plt.show()
+
+    def get_auto_clim(self, data, symmetric=False):
+        flat = data.flatten()
+        if flat.size > 500000: flat = flat[::5]
+        vmin, vmax = np.percentile(flat, [1, 99])
+        if symmetric:
+            abs_max = max(abs(vmin), abs(vmax))
+            return -abs_max, abs_max
+        return vmin, vmax
+
+    def refresh_plot(self):
+        title_parts = [f"T-idx={self.time_step}"]
+        for idx in [1, 2, 3]:
+            label = self.sel[idx]
+            if self.imgs[idx] is not None and label is not None:
+                full_data = self.pools[idx][label]
+                t = min(self.time_step, full_data.shape[0]-1)
+                
+                data_slice = np.transpose(full_data[t])
+                self.imgs[idx].set_data(data_slice)
+                
+                is_sym = (idx == 1)
+                vmin, vmax = self.get_auto_clim(data_slice, symmetric=is_sym)
+                self.imgs[idx].set_clim(vmin, vmax)
+                
+                unit = "a0" if idx == 1 else ("n/nc" if idx == 2 else "arb")
+                self.cbars[idx].set_label(f"{label} ({unit})")
+                title_parts.append(label)
+
+        self.ax.set_title(" | ".join(title_parts))
+        self.fig.canvas.draw_idle()
+
+    def rotate_pool(self, idx, direction):
+        meta = getattr(self, f"pool{idx}_meta")
+        if meta:
+            meta.rotate(direction)
+            self.sel[idx] = meta[0]
+            self.refresh_plot()
+
+    def onclick(self, event):
+        if event.key == 'right': self.time_step += 1; self.refresh_plot()
+        elif event.key == 'left': self.time_step = max(0, self.time_step - 1); self.refresh_plot()
+        elif event.key == 'shift+right': self.time_step += 10; self.refresh_plot()
+        elif event.key == 'shift+left': self.time_step = max(0, self.time_step - 10); self.refresh_plot()
+        elif event.key == 'n': self.rotate_pool(1, 1)
+        elif event.key == 'm': self.rotate_pool(1, -1)
+        elif event.key == 'd': self.rotate_pool(2, 1)
+        elif event.key == 'a': self.rotate_pool(2, -1)
+        elif event.key == 'ctrl+n': self.rotate_pool(3, 1)
+        elif event.key == 'ctrl+m': self.rotate_pool(3, -1)
+        elif event.key == '1' and self.imgs[1]: self.imgs[1].set_visible(not self.imgs[1].get_visible()); self.fig.canvas.draw_idle()
+        elif event.key == '2' and self.imgs[2]: self.imgs[2].set_visible(not self.imgs[2].get_visible()); self.fig.canvas.draw_idle()
+        elif event.key == '3' and self.imgs[3]: self.imgs[3].set_visible(not self.imgs[3].get_visible()); self.fig.canvas.draw_idle()
+
+
+class DianaInteractiveMoving:
+    """Viewer calculating and shifting extents dynamically."""
     def __init__(self, pools, grid_params, time_step=0):
+        print("  [Viewer] Initializing Moving Window Viewer...")
         self.pools = pools 
         self.grid_params = grid_params
         self.time_step = time_step
@@ -204,20 +336,22 @@ class DianaInteractive:
 
     def get_extent(self, time_idx):
         p = self.grid_params
-        # Check if the grid was actually defined (not None)
-        if p['dt'] is None or p['xmin'] is None or p['xmax'] is None: 
+        if p.get('xmin') is None or p.get('xmax') is None: 
             return None
             
-        t = time_idx * p['dt']
         shift = 0.0
-        
-        if t > p['t_start']:
-            shift = p['v_x'] * (t - p['t_start'])
+        if p.get('v_x', 0) > 0 and p.get('dt') is not None:
+            t = time_idx * p['dt']
+            if t > p.get('t_start', 0):
+                shift = p['v_x'] * (t - p['t_start'])
             
         scale = 1e6 # Convert to micrometers
+        y_min_val = p.get('ymin', 0.0)
+        y_max_val = p.get('ymax', 0.0)
+        
         return [
             (p['xmin'] + shift) * scale, (p['xmax'] + shift) * scale,
-            p['ymin'] * scale, p['ymax'] * scale
+            y_min_val * scale, y_max_val * scale
         ]
 
     def get_auto_clim(self, data, symmetric=False):
@@ -253,8 +387,7 @@ class DianaInteractive:
                 self.cbars[idx].set_label(f"{label} ({unit})")
                 title_parts.append(label)
 
-        # Update axes limits
-        t_safe = min(self.time_step, self.pools[1][self.sel[1]].shape[0]-1)
+        t_safe = min(self.time_step, self.pools[1][self.sel[1]].shape[0]-1) if self.sel[1] else self.time_step
         current_extent = self.get_extent(t_safe)
         
         if current_extent is not None:
@@ -299,7 +432,6 @@ def run_cli():
     parser.add_argument("--dir", type=str, default=".", help="Directory with HDF5 files")
     parser.add_argument("--stride", type=int, default=1, help="Downsampling factor.")
     
-    # We set default=None so we can check if the user actively provided them in the CLI
     parser.add_argument("--lambda", dest="lambda_nm", type=float, default=None)
     parser.add_argument("--dt", type=float, default=None)
     parser.add_argument("--x-min", type=float, default=None)
@@ -310,53 +442,51 @@ def run_cli():
     parser.add_argument("--window-start", type=float, default=None)
     args = parser.parse_args()
     
-    # 1. Parse input.deck
-    deck_params = parse_input_deck(args.dir)
+    deck = parse_input_deck(args.dir)
+    move_window = deck.get('move_window', False)
     
-    # 2. Hierarchy Logic (Deck -> CLI -> Prompt)
-    
-    # LAMBDA
-    lambda_nm = args.lambda_nm if args.lambda_nm is not None else deck_params.get('lambda_nm')
+    # 1. Core Physics (Lambda)
+    lambda_nm = args.lambda_nm if args.lambda_nm is not None else deck.get('lambda_nm')
     if lambda_nm is None:
-        val = input("  [Manual Input] Wavelength (lambda) not found. Enter value in nm (default 1000): ").strip()
+        val = input("  [Manual Input] Wavelength (lambda) not found. Enter in nm (default 1000): ").strip()
         lambda_nm = float(val) if val else 1000.0
     setup_physics(lambda_nm)
     
-    # WINDOW PARAMETERS
-    v_x = args.window_v_x if args.window_v_x is not None else deck_params.get('window_v_x')
-    if v_x is None:
-        val = input("  [Manual Input] Window velocity (window_v_x) not found. Enter value in m/s (default 0.0): ").strip()
-        v_x = float(val) if val else 0.0
+    # 2. Extract or Prompt Grid Parameters (Only demanded if move_window is True)
+    grid_params = {}
+    if move_window:
+        print("\n  [Info] Moving window is ACTIVE in input.deck.")
+        v_x = args.window_v_x if args.window_v_x is not None else deck.get('window_v_x')
+        if v_x is None: 
+            v_x = float(input("  [Manual Input] window_v_x not found. Enter in m/s (default 0.0): ").strip() or "0")
 
-    t_start = args.window_start if args.window_start is not None else deck_params.get('window_start')
-    if t_start is None and v_x > 0:
-        val = input("  [Manual Input] Window start time (win_start) not found. Enter value in seconds (default 0.0): ").strip()
-        t_start = float(val) if val else 0.0
-    elif t_start is None:
-        t_start = 0.0
+        t_start = args.window_start if args.window_start is not None else deck.get('window_start')
+        if t_start is None: 
+            t_start = float(input("  [Manual Input] window_start not found. Enter in seconds (default 0.0): ").strip() or "0")
         
-    # GRID PARAMETERS (If moving window is active, we MUST have grid params to calculate extent)
-    dt = args.dt
-    xmin, xmax = args.x_min, args.x_max
-    ymin, ymax = args.y_min, args.y_max
-    
-    if v_x > 0 and (dt is None or xmin is None):
-        print("\n  [Warning] Moving window detected, but physical grid size/timestep missing.")
-        val_dt = input("  [Manual Input] Enter timestep (dt) in seconds (e.g. 1e-14): ").strip()
-        dt = float(val_dt) if val_dt else None
-        if dt is not None:
-            xmin = float(input("  [Manual Input] Enter x_min in meters (e.g. 0): ").strip() or "0")
-            xmax = float(input("  [Manual Input] Enter x_max in meters: ").strip() or "0")
-            ymin = float(input("  [Manual Input] Enter y_min in meters: ").strip() or "0")
-            ymax = float(input("  [Manual Input] Enter y_max in meters: ").strip() or "0")
+        dt = args.dt if args.dt is not None else deck.get('dt')
+        xmin = args.x_min if args.x_min is not None else deck.get('x_min')
+        xmax = args.x_max if args.x_max is not None else deck.get('x_max')
+        ymin = args.y_min if args.y_min is not None else deck.get('y_min')
+        ymax = args.y_max if args.y_max is not None else deck.get('y_max')
 
-    grid_params = {
-        'dt': dt, 'xmin': xmin, 'xmax': xmax, 'ymin': ymin, 'ymax': ymax,
-        'v_x': v_x, 't_start': t_start
-    }
+        # Demand bounds & dt ONLY because the window is shifting
+        if dt is None or xmin is None or xmax is None:
+            print("  [Warning] Grid boundaries/dt incomplete for moving window calculation.")
+            if dt is None: dt = float(input("  [Manual Input] Enter dt_snapshot in seconds: ").strip())
+            if xmin is None: xmin = float(input("  [Manual Input] Enter x_min in meters: ").strip())
+            if xmax is None: xmax = float(input("  [Manual Input] Enter x_max in meters: ").strip())
+            if ymin is None: ymin = float(input("  [Manual Input] Enter y_min in meters (or 0): ").strip() or "0")
+            if ymax is None: ymax = float(input("  [Manual Input] Enter y_max in meters (or 0): ").strip() or "0")
 
+        grid_params = {'dt': dt, 'xmin': xmin, 'xmax': xmax, 'ymin': ymin, 'ymax': ymax, 'v_x': v_x, 't_start': t_start}
+    else:
+        print("\n  [Info] Moving window is INACTIVE (or undefined). Using standard static viewer.")
+
+    # 3. Load Datasets
     pools = {1: {}, 2: {}, 3: {}}
     print(f"\n--- Loading Data (Stride={args.stride}) ---")
+    
     for key, meta in VARIABLES.items():
         if key == "xye": continue
         path = os.path.join(args.dir, meta["file"])
@@ -371,11 +501,15 @@ def run_cli():
         if data is not None: pools[3]["High_E_Sum"] = data
 
     if not any(pools[p] for p in pools):
-        print("Error: No data loaded.")
+        print("Error: No data loaded. Check directory path and HDF5 files.")
         return
 
+    # 4. Launch Appropriate Viewer
     print("--- Initialization Complete. Starting Viewer ---")
-    DianaInteractive(pools, grid_params)
+    if move_window:
+        DianaInteractiveMoving(pools, grid_params)
+    else:
+        DianaInteractiveStatic(pools)
 
 if __name__ == "__main__":
     run_cli()
