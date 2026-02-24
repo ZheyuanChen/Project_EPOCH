@@ -8,3 +8,5 @@ My little "finding around" with EPOCH
 
 ### Notes
 Some features are quite hard-wired, especially the structure of your directory. This isn't great. I will have to fix this in the future.
+This "software" does not track .sdf, .hdf5, and .gif files. So, when cloning the repo, one needs to run the epoch simulation and convert them to hdf5 files.
+
