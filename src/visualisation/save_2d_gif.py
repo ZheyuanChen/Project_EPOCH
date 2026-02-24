@@ -1,9 +1,11 @@
 import os
 import sys
 import argparse
+import numpy
 import matplotlib.pyplot as plt
 from matplotlib.animation import PillowWriter
 import sdf_helper as sh
+import matplotlib.ticker as ticker  # <-- NEEDED FOR TICK FORMATTING
 
 def read_sdffiles_from_directory(directory_path, verbose=False):
     """Read all SDF files from a directory and return a list of data objects."""
@@ -60,7 +62,7 @@ def general_parser():
     )
     return parser
 
-def save_2d_animation_to_gif():
+def save_2d_animation_to_gif_fixed_colour_bar():
     parser = general_parser()
     args = parser.parse_args()
     
@@ -203,6 +205,76 @@ def save_2d_animation_to_gif_unstable():
             writer.grab_frame()
             
             # Just printing progress so you know it hasn't frozen
+            if i % 10 == 0:
+                print(f"  Frame {i}/{len(data_list)} added...")
+
+    print(f"\nSuccessfully saved to: {os.path.abspath(gif_filename)}")
+
+def save_2d_animation_to_gif():
+    parser = general_parser()
+    args = parser.parse_args()
+    
+    directory_path = args.dir
+    gif_filename = args.gif_filename
+    verbose = args.verbose
+    variable_name = args.variable_name_to_be_animated
+    duration = args.duration
+    
+    # 1. Load Data
+    try:
+        data_list = read_sdffiles_from_directory(directory_path, verbose=verbose)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+    # 2. Handle Variable Selection
+    if variable_name is None:
+        print('\nAvailable variables in first file:')
+        sh.list_variables(data_list[0])
+        variable_name = input("\nEnter variable name to animate: ").strip()
+
+    # 3. Handle Output Filename
+    if gif_filename == "animation.gif":
+        gif_filename = f"{variable_name}_animation.gif"
+        print(f"No gif filename provided, using default: {gif_filename}")
+
+    print(f"Creating animation for '{variable_name}'...")
+    
+    # ----------------------------------------------------------
+    # 3. Set up figure
+    # ----------------------------------------------------------
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    # ----------------------------------------------------------
+    # 4. Animation over all SDF files
+    # ----------------------------------------------------------
+    writer = PillowWriter(fps=int(1 / duration))
+
+    with writer.saving(fig, gif_filename, dpi=150):
+        for i, data in enumerate(data_list):
+            plt.clf()
+            var = getattr(data, variable_name)
+            
+            # Plot dynamically (no fixed vmin/vmax)
+            sh.plot2d(var, interpolation='bicubic')
+            plt.title(f"Frame {i}")
+
+            # --- THE FRIEND'S FIX ---
+            # sdf_helper usually places the colorbar in the second axes object
+            if len(fig.axes) > 1:
+                cax = fig.axes[1] 
+                
+                # 1. Force exactly 5 tick marks so the scale doesn't jump around
+                cax.yaxis.set_major_locator(ticker.LinearLocator(numticks=5))
+                
+                # 2. Force scientific notation with exactly 2 decimal places.
+                # PRO TIP: The space in '% .2e' is critical! It adds a blank space 
+                # in front of positive numbers so they are exactly the same width 
+                # as negative numbers (which have a '-').
+                cax.yaxis.set_major_formatter(ticker.FormatStrFormatter('% .2e'))
+
+            writer.grab_frame()
+            
             if i % 10 == 0:
                 print(f"  Frame {i}/{len(data_list)} added...")
 
