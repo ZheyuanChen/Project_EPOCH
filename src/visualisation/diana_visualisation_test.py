@@ -22,6 +22,11 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 CONSTANTS = {} 
 
 def setup_physics(lambda_nm):
+    '''
+    Normalise everything according to EPOCH standard. 
+    Note that the normalisation is hard-coded for each variable, so need to modify this when adding more variables in the future.
+    Densities are normalised to critical density. 
+    '''
     lambda_m = lambda_nm * 1.0e-9
     c = 299792458.0
     me = 9.10938356e-31
@@ -44,6 +49,10 @@ def setup_physics(lambda_nm):
     }
 
 def setup_colormaps():
+    '''
+    As the name suggests, this function sets up and returns the colormaps used for density, kinetic energy, and fields (the three pools).
+    I actually don't know what it does. 
+    '''
     cmap1 = plt.cm.gist_yarg
     my_cmap = cmap1(np.arange(cmap1.N))
     my_cmap[:, -1] = 0.8
@@ -68,12 +77,16 @@ def parse_input_deck(base_dir):
         print(f"  [Parser] No input.deck found at {deck_path}")
         return {}
 
-    print(f"  [Parser] Found input.deck at {deck_path}. Analyzing equations...")
+    print(f"  [Parser] Found input.deck at {deck_path}. Analysing equations...")
     
     raw_vars = {}
     current_block = None
     is_normal_output = False
     normal_dt_raw = None
+
+    # Track lambda by block
+    constant_lambda_raw = None
+    laser_lambda_raw = None
 
     with open(deck_path, 'r') as f:
         for line in f:
@@ -103,15 +116,34 @@ def parse_input_deck(base_dir):
             if key == 'dt_snapshot':
                 if current_block == 'output' and is_normal_output:
                     normal_dt_raw = val
+            # Intercept lambda based on the current block ---
+            elif key == 'lambda':
+                if current_block == 'constant':
+                    constant_lambda_raw = val
+                elif current_block == 'laser':
+                    laser_lambda_raw = val
+                else:
+                    raw_vars[key] = val # Just in case it's defined somewhere weird
+            # --------------------------------------------------------        
             else:
                 raw_vars[key] = val
 
     if normal_dt_raw:
         raw_vars['normal_dt_snapshot'] = normal_dt_raw
 
+    # --- NEW: Priority logic for lambda ---
+    # 1. Prefer the constant block
+    if constant_lambda_raw:
+        raw_vars['lambda'] = constant_lambda_raw
+    # 2. Fall back to the laser block (but ignore 'lambda = lambda')
+    elif laser_lambda_raw and laser_lambda_raw != 'lambda':
+        raw_vars['lambda'] = laser_lambda_raw
+    # 3. If neither yielded a value, 'lambda' isn't added to raw_vars.
+    #    This ensures it skips evaluation and triggers your manual input later.
+    # --------------------------------------
     resolved_vars = {
         'c': 299792458.0, 'femto': 1e-15, 'pico': 1e-12, 
-        'nano': 1e-9, 'micro': 1e-6, 'micron': 1e-6, 'milli': 1e-3
+        'nano': 1e-9, 'micro': 1e-6, 'micron': 1e-6, 'microns':1e-6,'milli': 1e-3
     }
     
     unresolved = raw_vars.copy()
@@ -200,7 +232,7 @@ VARIABLES = {
 class DianaInteractiveStatic:
     """Standard viewer for static boxes (no window shifting)"""
     def __init__(self, pools, time_step=0):
-        print("  [Viewer] Initializing Standard Static Viewer...")
+        print("  [Viewer] Initialising Standard Static Viewer...")
         self.pools = pools 
         self.time_step = time_step
         
@@ -296,7 +328,7 @@ class DianaInteractiveStatic:
 class DianaInteractiveMoving:
     """Viewer calculating and shifting extents dynamically."""
     def __init__(self, pools, grid_params, time_step=0):
-        print("  [Viewer] Initializing Moving Window Viewer...")
+        print("  [Viewer] Initialising Moving Window Viewer...")
         self.pools = pools 
         self.grid_params = grid_params
         self.time_step = time_step
@@ -505,7 +537,7 @@ def run_cli():
         return
 
     # 4. Launch Appropriate Viewer
-    print("--- Initialization Complete. Starting Viewer ---")
+    print("--- Initialisation Complete. Starting Viewer ---")
     if move_window:
         DianaInteractiveMoving(pools, grid_params)
     else:
