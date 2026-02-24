@@ -58,7 +58,7 @@ def setup_colormaps():
     my_cmap[:, -1] = 0.8
     cmap_density = ListedColormap(my_cmap)
 
-    colors2 = [(0.2, 1, 0.01, (c+1)*0.5) for c in np.linspace(-1, 1, 200)]
+    colors2 = [(0.2, 1, 0.01, (c+1)*0.25) for c in np.linspace(-1, 1, 200)]
     cmap_green = LinearSegmentedColormap.from_list('mycmap2', colors2, N=200)
 
     cmapB = plt.cm.coolwarm
@@ -261,7 +261,7 @@ class DianaInteractiveStatic:
             self.imgs[2] = self.ax.imshow(dummy, cmap=self.cmap_density, origin='lower', aspect='auto', alpha=0.6)
             self.cbars[2] = plt.colorbar(self.imgs[2], ax=self.ax, fraction=0.046, pad=0.04)
         if self.sel[3]:
-            self.imgs[3] = self.ax.imshow(dummy, cmap=self.cmap_green, origin='lower', aspect='auto', alpha=0.5)
+            self.imgs[3] = self.ax.imshow(dummy, cmap=self.cmap_green, origin='lower', aspect='auto')
             self.cbars[3] = plt.colorbar(self.imgs[3], ax=self.ax, fraction=0.046, pad=0.04)
 
         self.ax.set_xlabel("x [pixels]")
@@ -359,7 +359,7 @@ class DianaInteractiveMoving:
             self.imgs[2] = self.ax.imshow(dummy, cmap=self.cmap_density, origin='lower', aspect='auto', alpha=0.6, extent=initial_extent)
             self.cbars[2] = plt.colorbar(self.imgs[2], ax=self.ax, fraction=0.046, pad=0.04)
         if self.sel[3]:
-            self.imgs[3] = self.ax.imshow(dummy, cmap=self.cmap_green, origin='lower', aspect='auto', alpha=0.5, extent=initial_extent)
+            self.imgs[3] = self.ax.imshow(dummy, cmap=self.cmap_green, origin='lower', aspect='auto', extent=initial_extent)
             self.cbars[3] = plt.colorbar(self.imgs[3], ax=self.ax, fraction=0.046, pad=0.04)
 
         self.fig.canvas.mpl_connect('key_press_event', self.onclick)
