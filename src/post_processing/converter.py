@@ -22,7 +22,9 @@ def get_args():
     parser = argparse.ArgumentParser(description="EPOCH SDF to HDF5 Converter")
     
     parser.add_argument(
-        "input", 
+        "--dir",
+        dest="input",
+        required=True, 
         help="Input directory containing SDF files (e.g., .../sth/sdf_files)"
     )
     parser.add_argument(
