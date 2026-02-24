@@ -135,24 +135,33 @@ def save_2d_animation_to_gif():
     print(f"\nSuccessfully saved to: {os.path.abspath(gif_filename)}")
 
 def save_2d_animation_to_gif_unstable():
-    args = general_parser().parse_args()
+    parser = general_parser()
+    args = parser.parse_args()
+    
+    directory_path = args.dir
+    gif_filename = args.gif_filename
+    verbose = args.verbose
+    variable_name = args.variable_name_to_be_animated
+    duration = args.duration
     
     # 1. Load Data
     try:
-        data_list = read_sdffiles_from_directory(args.dir, verbose=args.verbose)
+        data_list = read_sdffiles_from_directory(directory_path, verbose=verbose)
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
 
     # 2. Handle Variable Selection
-    variable_name = args.var
+    
     if variable_name is None:
         print('\nAvailable variables in first file:')
         sh.list_variables(data_list[0])
         variable_name = input("\nEnter variable name to animate: ").strip()
 
     # 3. Handle Output Filename
-    gif_filename = args.output if args.output else f"{variable_name}_animation.gif"
+    if gif_filename == "animation.gif":
+        gif_filename = f"{variable_name}_animation.gif"
+        print(f"No gif filename provided, using default: {gif_filename}")
 
     print(f"Creating animation for '{variable_name}'...")
         # 3. Set up figure and initial frame (REVERTED TO YOUR ORIGINAL)
@@ -176,7 +185,7 @@ def save_2d_animation_to_gif_unstable():
             global_min = min(global_min, val.min())
             global_max = max(global_max, val.max())
 
-    writer = PillowWriter(fps=int(1 / 0.1))
+    writer = PillowWriter(fps=int(1 / duration))
 
     with writer.saving(fig, gif_filename, dpi=150):
         for i, data in enumerate(data_list):

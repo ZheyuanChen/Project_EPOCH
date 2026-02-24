@@ -243,3 +243,5 @@ tmp/
 *.hdf5
 
 .vscode/
+
+*.gif
