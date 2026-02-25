@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+# This script converts EPOCH SDF files to HDF5 format for easier post-processing.
 import os
 import h5py
 import argparse
@@ -37,7 +39,6 @@ def get_args():
     )
 
     args = parser.parse_args()
-    
     # 1. Resolve Absolute Path for Input
     args.input = os.path.abspath(args.input)
     
