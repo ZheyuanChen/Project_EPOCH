@@ -31,4 +31,5 @@ dependencies = [
 vis = "visualisation.diana_visualisation:run_cli"
 sdf_converter = "post_processing.converter:main"
 save_gif_2d ="visualisation.save_2d_gif:save_2d_animation_to_gif"
-
+convert_test = "post_processing.dev_code:main"
+vis_test = "visualisation.dev_code:run_cli"
