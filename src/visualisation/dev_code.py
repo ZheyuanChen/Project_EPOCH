@@ -2,7 +2,7 @@
 """
 diana_visualisation.py
 Auto-Deck Parsing & Dual Viewer (Static / Moving Window)
-Task 2 Update: Added species energy rotation (hotkeys 'o'/'p') and axis units.
+Task 2 Update: Added spatial ekbar fields to pool 3.
 """
 
 import os
@@ -144,6 +144,12 @@ VARIABLES = {
     "n_photon": {"file": "n_photon.hdf5", "dataset": "n_photon", "pool": 2},
     "poynt_x":  {"file": "poynt_x.hdf5",  "dataset": "poynt_x", "pool": 3},
     "xye":      {"file": "x_y_Ekin.hdf5", "dataset": "xy_Ekin", "pool": 3},
+    # Added new spatial energy variables to pool 3
+    "ekbar":          {"file": "ekbar.hdf5",          "dataset": "ekbar",          "pool": 3},
+    "ekbar_electron": {"file": "ekbar_electron.hdf5", "dataset": "ekbar_electron", "pool": 3},
+    "ekbar_ion":      {"file": "ekbar_ion.hdf5",      "dataset": "ekbar_ion",      "pool": 3},
+    "ekbar_photon":   {"file": "ekbar_photon.hdf5",   "dataset": "ekbar_photon",   "pool": 3},
+    "ekbar_positron": {"file": "ekbar_positron.hdf5", "dataset": "ekbar_positron", "pool": 3},
 }
 
 # ----------------------------
@@ -259,7 +265,7 @@ class DianaInteractiveStatic:
         elif event.key in ['n', 'm']: self.rotate_pool(1, 1 if event.key=='n' else -1)
         elif event.key in ['d', 'a']: self.rotate_pool(2, 1 if event.key=='d' else -1)
         elif event.key in ['ctrl+n', 'ctrl+m']: self.rotate_pool(3, 1 if 'n' in event.key else -1)
-        # Added keys for rotating energy display
+        # Added keys for rotating energy display 
         elif event.key == 'e': self.energy_keys.rotate(-1); self.refresh_plot()
         elif event.key == 'r': self.energy_keys.rotate(1); self.refresh_plot()
         
