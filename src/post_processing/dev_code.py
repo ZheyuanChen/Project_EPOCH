@@ -15,7 +15,6 @@ VARIABLES = {
     "ne": ("Derived_Number_Density_Electron", "n_e.hdf5"),
     "n_photon": ("Derived_Number_Density_Photon", "n_photon.hdf5"),
     "poynt_x": ("Derived_Poynting_Flux_x", "poynt_x.hdf5"),
-    "xy_Ekin": ("Derived_Average_Particle_Energy_Electron", "x_y_Ekin.hdf5"), # Kept for legacy compatibility
     "ekbar": ("Derived_Average_Particle_Energy", "ekbar.hdf5"),
     "ekbar_electron": ("Derived_Average_Particle_Energy_Electron", "ekbar_electron.hdf5"),
     "ekbar_ion": ("Derived_Average_Particle_Energy_Ion", "ekbar_ion.hdf5"),

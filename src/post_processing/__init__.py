@@ -29,6 +29,6 @@ def examine_data_structure():
     args.input = os.path.abspath(args.input)
 
 
-    data = sh.getdata(os.path.join(args.input, "0001.sdf"))
+    data = sh.getdata(os.path.join(args.input, "0030.sdf"))
     sh.list_variables(data)
     return 1+1

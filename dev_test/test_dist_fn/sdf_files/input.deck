@@ -255,22 +255,24 @@ end:laser
 
 begin:dist_fn
 
-  name = px_py
+  name = en_xy_angle
   ndims = 2
   dumpmask = always
 
-  direction1 = dir_px
-  direction2 = dir_py
+  direction1 = dir_en
+  direction2 = dir_xy_angle
 
   # range is ignored for spatial coordinates
-  range1 = (-1.5e-21, 1.5e-21)
-  range2 = (-1.5e-21, 1.5e-21)
+  # energy range in joules (2MeV, 2GeV)
+  # angle range in radians (-pi, pi)
+  range1 = (3.2e-13, 3.2e-10)
+  range2 = (-pi, pi)
 
   # resolution is ignored for spatial coordinates
   resolution1 = 200
   resolution2 = 200
 
   include_species:Photon
-  # include_species:Electron
+  include_species:Electron
 
 end:dist_fn
