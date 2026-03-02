@@ -33,6 +33,11 @@ VARIABLES = {
 }
 
 def get_args():
+    '''
+    Parses command line arguments for the converter. The most important one is the input directory containing the SDF files. 
+    The output directory is optional and defaults to a subfolder named "hdf5_output" in the same location as the input. 
+    The max-steps argument allows users to limit how many timesteps to scan for SDF files, which can speed up processing if they know their data range.
+    '''
     parser = argparse.ArgumentParser(description="EPOCH SDF to HDF5 Converter")
     parser.add_argument("--dir", dest="input", required=True, help="Input directory (SDF files)")
     parser.add_argument("-o", "--output", help="Output directory")
