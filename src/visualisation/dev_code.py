@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-diana_visualisation.py
-Auto-Deck Parsing & Dual Viewer (Static / Moving Window)
-Task 2 Update: Added spatial ekbar fields to pool 3.
-"""
-
 import os
 import argparse
 import sys
@@ -28,32 +22,41 @@ def setup_physics(lambda_nm):
     me = 9.10938356e-31
     e = 1.60217663e-19
     eps0 = 8.85418781e-12
-    
     omega = 2 * np.pi * c / lambda_m
     nc = eps0 * me * omega**2 / e**2
-    
+    joule_to_mev = (1.60218e-13)
+
+    # A line about energy normalisation: the normalisation factor for energy density is U_norm = n_c m_e c^2. 
+    # About normalisation factor: the thing after each variable is one by which you want to divide the variable. e.g. n_normlised = n / nc
     CONSTANTS["NORM_FACTORS"] = {
         "ne": nc, "n_photon": nc,
         "Ex": (me * omega * c) / e, "Ey": (me * omega * c) / e, "Ez": (me * omega * c) / e,
         "Bz": (me * omega) / e, "By": (me * omega) / e, "Bx": (me * omega) / e,
-        "Jx": e * nc * c, "Jy": e * nc * c,
-        "poynt_x": me * c**3 * nc, 
-        "xye": 1.0 
+        "Jx": e * nc * c, "Jy": e * nc * c, "Jz": e * nc * c,
+        "poynt_x": me * c**3 * nc, "poynt_y": me * c**3 * nc, "poynt_z": me * c**3 * nc, # For some cruel reason I decided to normalise the poynting flux by me*c^3*nc. i.e. the unit in a0
+        "ekbar": joule_to_mev, "ekbar_electron": joule_to_mev, "ekbar_photon": joule_to_mev, "ekbar_ion": joule_to_mev, "ekbar_positron": joule_to_mev, # This assumes the energy is in Joules and converts to MeV.  
     }
 
 def setup_colormaps():
+    # Pool 2: Density (Yarg)
     cmap1 = plt.cm.gist_yarg
     my_cmap = cmap1(np.arange(cmap1.N))
     my_cmap[:, -1] = 0.8
     cmap_density = ListedColormap(my_cmap)
 
+    # Pool 3: Green
     colors2 = [(0.05 + 0.15*(c+1)/2, 0.4 + 0.6*(c+1)/2, 0.01, (c+1)*0.25) for c in np.linspace(-1, 1, 200)]
     cmap_green = LinearSegmentedColormap.from_list('mycmap2', colors2, N=200)
 
-    cmapB = plt.cm.coolwarm
-    cmap_fields = ListedColormap(cmapB(np.arange(cmapB.N)))
+    # Pool 1: Fields (Coolwarm)
+    cmap_fields = plt.cm.coolwarm
 
-    return cmap_density, cmap_green, cmap_fields
+    # Pool 4: Energy Distribution (Inferno with transparent zeros)
+    cmap_dist_base = plt.cm.inferno(np.arange(plt.cm.inferno.N))
+    cmap_dist_base[0, -1] = 0  # Make zero-value pixels fully transparent
+    cmap_dist = ListedColormap(cmap_dist_base)
+
+    return cmap_density, cmap_green, cmap_fields, cmap_dist
 
 # ----------------------------
 # Smart Deck Parser & Loaders
@@ -120,7 +123,10 @@ def load_and_downsample(filepath, dataset_name, label, norm_key, stride):
     try:
         with h5py.File(filepath, 'r') as f:
             dset = f[dataset_name] if dataset_name in f else f[list(f.keys())[0]]
-            data = dset[:, ::stride, ::stride].astype(np.float32)
+            if dset.ndim == 4:
+                data = dset[:, ::stride, ::stride, :].astype(np.float32)
+            else:
+                data = dset[:, ::stride, ::stride].astype(np.float32)
             factors = CONSTANTS.get("NORM_FACTORS", {})
             if norm_key in factors: data /= factors[norm_key]
             return data
@@ -137,19 +143,28 @@ def load_xye_sum(filepath, dataset_name, stride):
 VARIABLES = {
     "Jx": {"file": "Jx.hdf5", "dataset": "Jx", "pool": 1},
     "Jy": {"file": "Jy.hdf5", "dataset": "Jy", "pool": 1},
+    "Jz": {"file": "Jz.hdf5", "dataset": "Jz", "pool": 1},
+    "Bx": {"file": "Bx.hdf5", "dataset": "Bx", "pool": 1},
+    "By": {"file": "By.hdf5", "dataset": "By", "pool": 1},
     "Bz": {"file": "Bz.hdf5", "dataset": "Bz", "pool": 1},
     "Ex": {"file": "Ex.hdf5", "dataset": "Ex", "pool": 1},
     "Ey": {"file": "Ey.hdf5", "dataset": "Ey", "pool": 1},
-    "ne": {"file": "n_e.hdf5", "dataset": "ne", "pool": 2}, 
+    "Ez": {"file": "Ez.hdf5", "dataset": "Ez", "pool": 1},
+    "ne": {"file": "n_e.hdf5", "dataset": "ne", "pool": 2},  # Be very careful. There is an underscore in n_e.hdf5 but not in the key "ne". Legacy issue (sigh).
     "n_photon": {"file": "n_photon.hdf5", "dataset": "n_photon", "pool": 2},
     "poynt_x":  {"file": "poynt_x.hdf5",  "dataset": "poynt_x", "pool": 3},
-    "xye":      {"file": "x_y_Ekin.hdf5", "dataset": "xy_Ekin", "pool": 3},
-    # Added new spatial energy variables to pool 3
-    "ekbar":          {"file": "ekbar.hdf5",          "dataset": "ekbar",          "pool": 3},
+    "poynt_y":  {"file": "poynt_y.hdf5",  "dataset": "poynt_y", "pool": 3},
+    "poynt_z":  {"file": "poynt_z.hdf5",  "dataset": "poynt_z", "pool": 3},
+    #"xye":      {"file": "x_y_Ekin.hdf5", "dataset": "xy_Ekin", "pool": 3},  # this line is not used. Legacy issue
+    "ekbar":    {"file": "ekbar.hdf5",    "dataset": "ekbar",   "pool": 3},
     "ekbar_electron": {"file": "ekbar_electron.hdf5", "dataset": "ekbar_electron", "pool": 3},
-    "ekbar_ion":      {"file": "ekbar_ion.hdf5",      "dataset": "ekbar_ion",      "pool": 3},
     "ekbar_photon":   {"file": "ekbar_photon.hdf5",   "dataset": "ekbar_photon",   "pool": 3},
+    "ekbar_ion":      {"file": "ekbar_ion.hdf5",      "dataset": "ekbar_ion",      "pool": 3},
     "ekbar_positron": {"file": "ekbar_positron.hdf5", "dataset": "ekbar_positron", "pool": 3},
+    "dist_electron": {"file": "dist_electron.hdf5", "dataset": "dist_electron", "pool": 4}, # This is the spatial_energy dist fn. Don't call it otherwise, less the code will not work.
+    "dist_photon":   {"file": "dist_photon.hdf5",   "dataset": "dist_photon",   "pool": 4}, 
+    "dist_ion":      {"file": "dist_ion.hdf5",      "dataset": "dist_ion",      "pool": 4},
+    "dist_positron": {"file": "dist_positron.hdf5", "dataset": "dist_positron", "pool": 4},
 }
 
 # ----------------------------
@@ -161,117 +176,130 @@ class DianaInteractiveStatic:
         self.pool1_meta = deque(k for k in pools[1].keys())
         self.pool2_meta = deque(k for k in pools[2].keys())
         self.pool3_meta = deque(k for k in pools[3].keys())
+        self.pool4_meta = deque(k for k in pools[4].keys())
+        
         self.sel = {1: self.pool1_meta[0] if self.pool1_meta else None,
                     2: self.pool2_meta[0] if self.pool2_meta else None,
-                    3: self.pool3_meta[0] if self.pool3_meta else None}
+                    3: self.pool3_meta[0] if self.pool3_meta else None,
+                    4: self.pool4_meta[0] if self.pool4_meta else None}
 
-        # Energy species rotation queue
+        self.energy_bin = 0
+        self.vmax_adj = {1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0}
         self.energy_keys = deque(["total_energy_particle"])
         if self.meta:
-            for species in ["electron", "ion", "photon", "positron"]:
-                if f"total_energy_{species}" in self.meta:
-                    self.energy_keys.append(f"total_energy_{species}")
+            for sp in ["electron", "ion", "photon"]:
+                if f"total_energy_{sp}" in self.meta: self.energy_keys.append(f"total_energy_{sp}")
 
-        self.cmap_density, self.cmap_green, self.cmap_fields = setup_colormaps()
+        self.cmaps = setup_colormaps()
         self.fig, self.ax = plt.subplots(figsize=(10, 6))
-        self.imgs, self.cbars = {1: None, 2: None, 3: None}, {1: None, 2: None, 3: None}
+        self.imgs, self.cbars = {}, {}
 
-        initial_extent = self.get_extent(0)
+        extent = self.get_extent(0)
+        layer_setup = [(1, self.cmaps[2], 1.0), (2, self.cmaps[0], 0.6), 
+                       (3, self.cmaps[1], 1.0), (4, self.cmaps[3], 0.7)]
         
-        for idx, cmap, alpha in [(1, self.cmap_fields, 1.0), (2, self.cmap_density, 0.6), (3, self.cmap_green, 1.0)]:
+        for idx, cmap, alpha in layer_setup:
             if self.sel[idx]:
-                self.imgs[idx] = self.ax.imshow(np.zeros((10,10)), cmap=cmap, origin='lower', aspect='auto', alpha=alpha, extent=initial_extent)
+                self.imgs[idx] = self.ax.imshow(np.zeros((2,2)), cmap=cmap, origin='lower', 
+                                                aspect='auto', alpha=alpha, extent=extent, zorder=idx)
                 self.cbars[idx] = plt.colorbar(self.imgs[idx], ax=self.ax, fraction=0.046, pad=0.04)
+                if idx == 4: self.imgs[idx].set_visible(False)
 
         self.fig.canvas.mpl_connect('key_press_event', self.onclick)
         self.refresh_plot()
         plt.show()
 
     def get_extent(self, time_idx):
-        if self.meta:
+        if self.meta and 'extents' in self.meta:
             t_meta = min(time_idx, len(self.meta['extents']) - 1)
             e = self.meta['extents'][t_meta]
             return [e[0], e[2], e[1], e[3]]
-        return None
+        return [0, 1, 0, 1]
 
-    def get_auto_clim(self, data, symmetric=False):
+    def get_auto_clim(self, data, pool_idx):
         flat = data.flatten()
         if flat.size > 500000: flat = flat[::5]
-        vmin, vmax = np.percentile(flat, [1, 99])
-        if symmetric:
+        vmin, vmax = np.percentile(flat, [1, 99.9])
+        vmax *= self.vmax_adj[pool_idx]
+        if vmax <= 0: vmax = 1e-10
+        if pool_idx == 1:
             m = max(abs(vmin), abs(vmax)); return -m, m
-        if vmin == vmax: vmax += 1e-10 
-        return vmin, vmax
+        return 0, vmax
 
     def refresh_plot(self):
         title_parts, scalar_str = [], ""
-        current_extent = self.get_extent(self.time_step)
+        extent = self.get_extent(self.time_step)
         
         if self.meta:
             t_meta = min(self.time_step, len(self.meta['times']) - 1)
-            title_parts.append(f"T={self.meta['times'][t_meta]:.1f} fs (idx={self.time_step})")
-            
-            # --- Dynamic Species Energy Display ---
+            #title_parts.append(f"T={self.meta['times'][t_meta]:.1f} fs (idx={self.time_step})") # In case I want the index of sdf as well.
+            title_parts.append(f"T={self.meta['times'][t_meta]:.1f} fs")
             if 'laser_en_total' in self.meta:
                 l_en, a_fr = self.meta['laser_en_total'][t_meta], self.meta['abs_frac'][t_meta]
-                f_en = self.meta['total_energy_field'][t_meta]
-                
                 curr_energy_key = self.energy_keys[0]
                 p_en = self.meta.get(curr_energy_key, [0])[t_meta]
-                
-                # Format label (e.g., 'total_energy_electron' -> 'Electron')
-                e_lbl = "Part" if curr_energy_key == "total_energy_particle" else curr_energy_key.split('_')[-1].capitalize()
-                
-                scalar_str = f"Laser: {l_en:.2e} J  |  Abs: {a_fr:.3f}  |  {e_lbl}: {p_en:.2e} J  |  Field: {f_en:.2e} J"
-        else: title_parts.append(f"T-idx={self.time_step}")
+                e_lbl = curr_energy_key.split('_')[-1].capitalize()
+                scalar_str = f"Laser: {l_en:.2e} J | Abs: {a_fr:.3f} | {e_lbl}: {p_en:.2e} J"
 
-        for idx in [1, 2, 3]:
+        for idx in [1, 2, 3, 4]:
             label = self.sel[idx]
-            if self.imgs[idx] and label:
-                full_data = self.pools[idx][label]
-                t = min(self.time_step, full_data.shape[0]-1)
-                data_slice = np.transpose(full_data[t])
-                self.imgs[idx].set_data(data_slice)
-                if current_extent: self.imgs[idx].set_extent(current_extent)
-                vmin, vmax = self.get_auto_clim(data_slice, symmetric=(idx == 1))
-                self.imgs[idx].set_clim(vmin, vmax)
-                unit = "a0" if idx == 1 else ("n/nc" if idx == 2 else "arb")
-                self.cbars[idx].set_label(f"{label} ({unit})")
-                title_parts.append(label)
+            if self.imgs.get(idx) and label:
+                is_visible = self.imgs[idx].get_visible()
+                self.cbars[idx].ax.set_visible(is_visible)
+                
+                if is_visible:
+                    full_data = self.pools[idx][label]
+                    t = min(self.time_step, full_data.shape[0]-1)
+                    
+                    if idx == 4 and full_data.ndim == 4:
+                        b = min(self.energy_bin, full_data.shape[3]-1)
+                        data_slice = np.transpose(full_data[t, :, :, b])
+                        title_label = f"{label}[Bin {b}]"
+                    else:
+                        data_slice = np.transpose(full_data[t])
+                        title_label = label
 
-        # Update Axes Labels
-        if current_extent:
-            self.ax.set_xlim(current_extent[0], current_extent[1])
-            self.ax.set_ylim(current_extent[2], current_extent[3])
-            self.ax.set_xlabel("x [μm]")
-            self.ax.set_ylabel("y [μm]")
-        else:
-            self.ax.set_xlabel("x [pixels]")
-            self.ax.set_ylabel("y [pixels]")
+                    self.imgs[idx].set_data(data_slice)
+                    self.imgs[idx].set_extent(extent)
+                    vmin, vmax = self.get_auto_clim(data_slice, idx)
+                    self.imgs[idx].set_clim(vmin, vmax)
+                    
+                    unit = "a0" if idx == 1 else ("n/nc" if idx == 2 else "arb")
+                    self.cbars[idx].set_label(f"{title_label} ({unit})")
+                    title_parts.append(title_label)
 
-        full_title = f"{scalar_str}\n" + " | ".join(title_parts) if scalar_str else " | ".join(title_parts)
-        self.ax.set_title(full_title, fontsize=10)
+        self.ax.set_xlabel("x [μm]")
+        self.ax.set_ylabel("y [μm]")
+        self.ax.set_title(f"{scalar_str}\n" + " | ".join(title_parts), fontsize=10)
         self.fig.canvas.draw_idle()
 
-    def rotate_pool(self, idx, direction):
-        meta = getattr(self, f"pool{idx}_meta")
-        if meta: meta.rotate(direction); self.sel[idx] = meta[0]; self.refresh_plot()
-
     def onclick(self, event):
-        if event.key == 'right': self.time_step += 1; self.refresh_plot()
-        elif event.key == 'left': self.time_step = max(0, self.time_step - 1); self.refresh_plot()
-        elif event.key == 'shift+right': self.time_step += 10; self.refresh_plot()
-        elif event.key == 'shift+left': self.time_step = max(0, self.time_step - 10); self.refresh_plot()
-        elif event.key in ['n', 'm']: self.rotate_pool(1, 1 if event.key=='n' else -1)
-        elif event.key in ['d', 'a']: self.rotate_pool(2, 1 if event.key=='d' else -1)
-        elif event.key in ['ctrl+n', 'ctrl+m']: self.rotate_pool(3, 1 if 'n' in event.key else -1)
-        # Added keys for rotating energy display 
-        elif event.key == 'e': self.energy_keys.rotate(-1); self.refresh_plot()
-        elif event.key == 'r': self.energy_keys.rotate(1); self.refresh_plot()
+        if event.key == 'right': self.time_step += 1
+        elif event.key == 'left': self.time_step = max(0, self.time_step - 1)
+        elif event.key == 'shift+right': self.time_step += 10
+        elif event.key == 'shift+left': self.time_step = max(0, self.time_step - 10)
         
-        for i in [1,2,3]:
-            if event.key == str(i) and self.imgs[i]: 
-                self.imgs[i].set_visible(not self.imgs[i].get_visible()); self.fig.canvas.draw_idle()
+        elif event.key in ['n', 'm']: self.pool1_meta.rotate(1 if event.key=='n' else -1); self.sel[1]=self.pool1_meta[0]
+        elif event.key in ['d', 'a']: self.pool2_meta.rotate(1 if event.key=='d' else -1); self.sel[2]=self.pool2_meta[0]
+        elif event.key in ['ctrl+n', 'ctrl+m']: self.pool3_meta.rotate(1 if 'n' in event.key else -1); self.sel[3]=self.pool3_meta[0]
+        elif event.key in ['v', 'b']: self.pool4_meta.rotate(1 if event.key=='v' else -1); self.sel[4]=self.pool4_meta[0]
+        
+        elif event.key == ']': self.energy_bin += 1
+        elif event.key == '[': self.energy_bin = max(0, self.energy_bin - 1)
+        elif event.key == '=':
+            for i in [1,2,3,4]: 
+                if self.imgs.get(i) and self.imgs[i].get_visible(): self.vmax_adj[i] *= 0.7
+        elif event.key == '-': 
+            for i in [1,2,3,4]: 
+                if self.imgs.get(i) and self.imgs[i].get_visible(): self.vmax_adj[i] *= 1.4
+        
+        elif event.key == 'e': self.energy_keys.rotate(-1)
+        elif event.key == 'r': self.energy_keys.rotate(1)
+        elif event.key in ['1', '2', '3', '4']:
+            idx = int(event.key)
+            if idx in self.imgs: self.imgs[idx].set_visible(not self.imgs[idx].get_visible())
+
+        self.refresh_plot()
 
 class DianaInteractiveMoving(DianaInteractiveStatic):
     def __init__(self, pools, grid_params, meta=None, time_step=0):
@@ -281,17 +309,13 @@ class DianaInteractiveMoving(DianaInteractiveStatic):
     def get_extent(self, time_idx):
         if self.meta: return super().get_extent(time_idx)
         p = self.grid_params
-        if p.get('xmin') is None: return None
         shift = 0.0
-        if p.get('v_x', 0) > 0 and p.get('dt') is not None:
+        if p.get('window_v_x', 0) > 0 and p.get('dt') is not None:
             t = time_idx * p['dt']
-            if t > p.get('t_start', 0): shift = p['v_x'] * (t - p['t_start'])
+            if t > p.get('window_start', 0): shift = p['window_v_x'] * (t - p['window_start'])
         scale = 1e6
-        return [(p['xmin']+shift)*scale, (p['xmax']+shift)*scale, p.get('ymin',0)*scale, p.get('ymax',0)*scale]
+        return [(p['x_min']+shift)*scale, (p['x_max']+shift)*scale, p['y_min']*scale, p['y_max']*scale]
 
-# ----------------------------
-# CLI Entry
-# ----------------------------
 def run_cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", type=str, default=".", help="Directory with HDF5 files")
@@ -303,31 +327,19 @@ def run_cli():
     if os.path.exists(meta_path):
         with h5py.File(meta_path, 'r') as f:
             meta = {"times": f["times"][:] * 1e15, "extents": f["extents"][:] * 1e6}
-            
-            # Load basic and species energies
-            keys_to_load = ["laser_en_total", "abs_frac", "total_energy_particle", "total_energy_field"]
-            for sp in ["electron", "ion", "photon", "positron"]: keys_to_load.append(f"total_energy_{sp}")
-            
-            for k in keys_to_load:
+            for k in ["laser_en_total", "abs_frac", "total_energy_particle", "total_energy_field", "total_energy_electron", "total_energy_photon"]:
                 if k in f: meta[k] = f[k][:]
     
     deck = parse_input_deck(args.dir)
     setup_physics(deck.get('lambda_nm', 1000.0))
-    
-    pools = {1: {}, 2: {}, 3: {}}
+    pools = {1: {}, 2: {}, 3: {}, 4: {}}
     for key, mv in VARIABLES.items():
-        if key == "xye": continue
+        if key == "xye": continue # Legacy issue. Don't call this variable, less the code will break.
         path = os.path.join(args.dir, mv["file"])
         if os.path.isfile(path):
             data = load_and_downsample(path, mv["dataset"], key, key, args.stride)
             if data is not None: pools[mv["pool"]][key] = data
 
-    path = os.path.join(args.dir, VARIABLES["xye"]["file"])
-    if os.path.isfile(path):
-        data = load_xye_sum(path, VARIABLES["xye"]["dataset"], args.stride)
-        if data is not None: pools[3]["High_E_Sum"] = data
-
-    if not any(pools[p] for p in pools): return
     if deck.get('move_window') or meta: DianaInteractiveMoving(pools, deck, meta=meta)
     else: DianaInteractiveStatic(pools, meta=meta)
 

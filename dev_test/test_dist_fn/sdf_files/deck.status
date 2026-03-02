@@ -1,4 +1,4 @@
- EPOCH2D v4.19.7   v4.19.7-0-g666daabe-dirty 1772210297.982            
+ EPOCH2D v4.19.7   v4.19.7-0-g666daabe-dirty 1772456821.473            
 
 Deck state:  1
 
@@ -169,15 +169,16 @@ Deck state:  1
 
  Beginning "dist_fn" block
 
- 	Element name=en_xy_angle handled OK
- 	Element ndims=2 handled OK
+ 	Element name=spatial_energy handled OK
+ 	Element ndims=3 handled OK
  	Element dumpmask=always handled OK
- 	Element direction1=dir_en handled OK
- 	Element direction2=dir_xy_angle handled OK
- 	Element range1=(3.2e-13, 3.2e-10) handled OK
- 	Element range2=(-pi, pi) handled OK
- 	Element resolution1=200 handled OK
- 	Element resolution2=200 handled OK
+ 	Element direction1=dir_x handled OK
+ 	Element direction2=dir_y handled OK
+ 	Element direction3=dir_en handled OK
+ 	Element range3=(3.2e-13, 3.2e-12) handled OK
+ 	Element resolution1=128 handled OK
+ 	Element resolution2=128 handled OK
+ 	Element resolution3=20 handled OK
  	Element include_species=Photon handled OK
  	Element include_species=Electron handled OK
 
@@ -365,15 +366,16 @@ Deck state:  2
 
  Beginning "dist_fn" block
 
- 	Element name=en_xy_angle handled OK
- 	Element ndims=2 handled OK
+ 	Element name=spatial_energy handled OK
+ 	Element ndims=3 handled OK
  	Element dumpmask=always handled OK
- 	Element direction1=dir_en handled OK
- 	Element direction2=dir_xy_angle handled OK
- 	Element range1=(3.2e-13, 3.2e-10) handled OK
- 	Element range2=(-pi, pi) handled OK
- 	Element resolution1=200 handled OK
- 	Element resolution2=200 handled OK
+ 	Element direction1=dir_x handled OK
+ 	Element direction2=dir_y handled OK
+ 	Element direction3=dir_en handled OK
+ 	Element range3=(3.2e-13, 3.2e-12) handled OK
+ 	Element resolution1=128 handled OK
+ 	Element resolution2=128 handled OK
+ 	Element resolution3=20 handled OK
  	Element include_species=Photon handled OK
  	Element include_species=Electron handled OK
 
