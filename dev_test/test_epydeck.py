@@ -4,7 +4,7 @@ import epydeck
 with open("./test_2d/input.deck") as f:
     deck = epydeck.load(f)
 
-#print(deck)
+# print(deck)
 
 print(deck.keys())
 # dict_keys(['control', 'boundaries', 'constant', 'species', 'laser', 'output_global', 'output', 'dist_fn'])

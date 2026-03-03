@@ -49,9 +49,7 @@ def setup_physics(lambda_nm):
         "Jz": e * nc * c,
         "poynt_x": me * c**3 * nc,
         "poynt_y": me * c**3 * nc,
-        "poynt_z": me
-        * c**3
-        * nc,  # For some cruel reason I decided to normalise the poynting flux by me*c^3*nc. i.e. the unit in a0
+        "poynt_z": me * c**3 * nc,
         "ekbar": joule_to_mev,
         "ekbar_electron": joule_to_mev,
         "ekbar_photon": joule_to_mev,
@@ -220,19 +218,6 @@ def load_and_downsample(filepath, dataset_name, label, norm_key, stride):
         return None  # noqa: E701, E722
 
 
-def load_xye_sum(filepath, dataset_name, stride):
-    """
-    Legacy code for loading the x_y_Ekin distribution and summing over the energy dimension to get a 2D spatial distribution.
-    """
-    try:
-        with h5py.File(filepath, "r") as f:
-            dset = f[dataset_name]
-            raw_data = dset[:, ::stride, ::stride, 2:]  # type: ignore
-            return np.sum(raw_data, axis=-1).astype(np.float32)  # type: ignore
-    except:  # noqa: E722
-        return None  # noqa: E701, E722
-
-
 VARIABLES = {
     "Jx": {"file": "Jx.hdf5", "dataset": "Jx", "pool": 1},
     "Jy": {"file": "Jy.hdf5", "dataset": "Jy", "pool": 1},
@@ -252,7 +237,6 @@ VARIABLES = {
     "poynt_x": {"file": "poynt_x.hdf5", "dataset": "poynt_x", "pool": 3},
     "poynt_y": {"file": "poynt_y.hdf5", "dataset": "poynt_y", "pool": 3},
     "poynt_z": {"file": "poynt_z.hdf5", "dataset": "poynt_z", "pool": 3},
-    # "xye":      {"file": "x_y_Ekin.hdf5", "dataset": "xy_Ekin", "pool": 3},  # this line is not used. Legacy issue
     "ekbar": {"file": "ekbar.hdf5", "dataset": "ekbar", "pool": 3},
     "ekbar_electron": {
         "file": "ekbar_electron.hdf5",
@@ -303,7 +287,7 @@ class DianaInteractiveStatic:
         self.vmax_adj = {1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0}
         self.energy_keys = deque(["total_energy_particle"])
         if self.meta:
-            for sp in ["electron", "ion", "photon"]:
+            for sp in ["electron", "ion", "photon", "positron"]:
                 if f"total_energy_{sp}" in self.meta:
                     self.energy_keys.append(f"total_energy_{sp}")
 
@@ -327,7 +311,7 @@ class DianaInteractiveStatic:
                     origin="lower",
                     aspect="auto",
                     alpha=alpha,
-                    extent=extent, # type: ignore
+                    extent=extent,  # type: ignore
                     zorder=idx,
                 )  # type: ignore
                 self.cbars[idx] = plt.colorbar(
@@ -346,6 +330,15 @@ class DianaInteractiveStatic:
             e = self.meta["extents"][t_meta]
             return [e[0], e[2], e[1], e[3]]
         return [0, 1, 0, 1]
+
+    def get_energy_cutoff_text(self, b_idx, num_bins):
+        if self.meta and "dist_extents" in self.meta:
+            # dist_extents assumed in Joules: [E_min, E_max, ...]
+            e_min = self.meta["dist_extents"][0] / 1.60218e-13
+            e_max = self.meta["dist_extents"][1] / 1.60218e-13
+            cutoff = e_min + (e_max - e_min) * (b_idx / num_bins)
+            return f">{cutoff:.1f} MeV | < {e_max:.1f} MeV"
+        return f">Bin {b_idx}"
 
     def get_auto_clim(self, data, pool_idx):
         flat = data.flatten()
@@ -366,7 +359,6 @@ class DianaInteractiveStatic:
 
         if self.meta:
             t_meta = min(self.time_step, len(self.meta["times"]) - 1)
-            # title_parts.append(f"T={self.meta['times'][t_meta]:.1f} fs (idx={self.time_step})") # In case I want the index of sdf as well.
             title_parts.append(f"T={self.meta['times'][t_meta]:.1f} fs")
             if "laser_en_total" in self.meta:
                 l_en, a_fr, en_field = (
@@ -390,9 +382,12 @@ class DianaInteractiveStatic:
                     t = min(self.time_step, full_data.shape[0] - 1)
 
                     if idx == 4 and full_data.ndim == 4:
-                        b = min(self.energy_bin, full_data.shape[3] - 1)
-                        data_slice = np.transpose(full_data[t, :, :, b])
-                        title_label = f"{label}[Bin {b}]"
+                        num_bins = full_data.shape[3]
+                        b = min(self.energy_bin, num_bins - 1)
+                        # STACKED (CUMULATIVE) DISTRIBUTION LOGIC
+                        data_slice = np.sum(full_data[t, :, :, b:], axis=2).T
+                        threshold_text = self.get_energy_cutoff_text(b, num_bins)
+                        title_label = f"{label} ({threshold_text})"
                     else:
                         data_slice = np.transpose(full_data[t])
                         title_label = label
@@ -402,7 +397,15 @@ class DianaInteractiveStatic:
                     vmin, vmax = self.get_auto_clim(data_slice, idx)
                     self.imgs[idx].set_clim(vmin, vmax)
 
-                    unit = "a0" if idx == 1 else ("n/nc" if idx == 2 else "arb")
+                    unit = (
+                        "a0"
+                        if idx == 1
+                        else (
+                            "n/nc"
+                            if idx == 2
+                            else ("MeV" if "ekbar" in label else "arb")
+                        )
+                    )
                     self.cbars[idx].set_label(f"{title_label} ({unit})")
                     title_parts.append(title_label)
 
@@ -412,24 +415,6 @@ class DianaInteractiveStatic:
         self.fig.canvas.draw_idle()
 
     def onclick(self, event):
-        """
-        Handle keyboard events for interactive navigation through time steps and variable selections.
-        Arrow keys (left/right) navigate through time steps, with shift for larger jumps.
-        As of now, there are 4 pools of variables.
-        To display/hide a pool, use the number keys '1', '2', '3', '4'.
-        Pool 4 in default is hidden.
-
-        Pool 1: Fields (e.g. Ex, By) and current (Jx). Keys 'n' and 'm' cycle through available variables in this pool.
-        Pool 2: Density variables (e.g. ne, n_photon). Keys 'd' and 'a' cycle through available variables in this pool.
-        Pool 3: Poynting flux and energy variables (e.g. poynt_x, ekbar). Keys 'ctrl+n' and 'ctrl+m' cycle through available variables in this pool.
-        Pool 4: Energy distribution functions (e.g. dist_electron). Keys 'v' and 'b' cycle through available SPECIES in this pool.
-        In particular, for pool 4, use '[' and ']' to cycle through energy bins of the distribution function.
-        Use '=' and '-' to adjust the color scaling (vmax) of the currently visible layers. This allows for better visualization of features in the data.
-
-        Furthermore, in the title line, we display the total laser energy injected, the absorption fraction, the total field energy, and the total particle energy (for a specific species, if available).
-        To change the species whose energy is displayed, use the 'e' and 'r' keys to cycle through the available species.
-        """
-
         if event.key == "right":
             self.time_step += 1
         elif event.key == "left":
@@ -478,12 +463,6 @@ class DianaInteractiveStatic:
 
 
 class DianaInteractiveMoving(DianaInteractiveStatic):
-    """
-    Due to a legacy issue, I write a separate class for the moving window case.
-    The main difference is in the get_extent function, where we have to account for the movement of the window over time.
-    Otherwise, they are basically the same. I should merge the two classes in the future to avoid code duplication, but for now I just want to get it working.
-    """
-
     def __init__(self, pools, grid_params, meta=None, time_step=0):
         self.grid_params = grid_params
         super().__init__(pools, meta, time_step)
@@ -507,11 +486,6 @@ class DianaInteractiveMoving(DianaInteractiveStatic):
 
 
 def run_cli():
-    """
-    It can parse command line arguments to specify the directory containing the HDF5 files and the stride for downsampling the data.
-    It then loads the metadata and the variables specified in the VARIABLES dictionary, applying the appropriate normalisation factors.
-    Finally, it initialises the interactive visualisation, choosing between the static or moving window version
-    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--dir", type=str, default=".", help="Directory with HDF5 files"
@@ -524,6 +498,8 @@ def run_cli():
     if os.path.exists(meta_path):
         with h5py.File(meta_path, "r") as f:
             meta = {"times": f["times"][:] * 1e15, "extents": f["extents"][:] * 1e6}  # type: ignore
+            if "dist_extents" in f:
+                meta["dist_extents"] = f["dist_extents"][:]  # type: ignore
             for k in [
                 "laser_en_total",
                 "abs_frac",
@@ -531,6 +507,8 @@ def run_cli():
                 "total_energy_field",
                 "total_energy_electron",
                 "total_energy_photon",
+                "total_energy_ion",
+                "total_energy_positron",
             ]:
                 if k in f:
                     meta[k] = f[k][:]  # type: ignore
@@ -539,8 +517,6 @@ def run_cli():
     setup_physics(deck.get("lambda_nm", 1000.0))
     pools = {1: {}, 2: {}, 3: {}, 4: {}}
     for key, mv in VARIABLES.items():
-        if key == "xye":
-            continue  # Legacy issue. Don't call this variable, less the code will break.
         path = os.path.join(args.dir, mv["file"])
         if os.path.isfile(path):
             data = load_and_downsample(path, mv["dataset"], key, key, args.stride)

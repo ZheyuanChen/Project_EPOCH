@@ -1,0 +1,52 @@
+begin:output
+
+  name = normal
+
+  # If use_offset_grid is true then the code dumps a grid which displays
+  # positions relative to the left hand edge of the window
+  use_offset_grid = F
+
+  # number of timesteps between output dumps
+  dt_snapshot = 100.0e-15 / 100.0
+
+  # Properties on grid
+  grid = always
+  ex = always
+  bz = always
+  jx = always
+  number_density = always + species
+  temperature = never + species
+  poynt_flux = never
+  distribution_functions = always
+  ekbar = always +species
+  absorption = always + species
+  total_energy_sum = always + species
+ 
+  particle_probes = never   # in case you use particle probe
+
+end:output
+
+begin:dist_fn
+
+  name = spatial_energy
+  ndims = 3
+  dumpmask = always
+
+  direction1 = dir_x
+  direction2 = dir_y
+  direction3 = dir_en
+
+  # range is ignored for spatial coordinates
+  # energy range in joules (2MeV, 2GeV)
+  range3 = (3.2e-13, 3.2e-12)
+
+  # resolution is ignored for spatial coordinates
+  resolution1 = 500
+  resolution2 = 500
+  resolution3 = 20  # This creates 20 "bins" or slices of energy
+
+
+  include_species:Photon
+  include_species:Electron
+
+end:dist_fn
