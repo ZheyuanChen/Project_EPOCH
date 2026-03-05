@@ -1,6 +1,8 @@
 # Project_EPOCH
 My little "finding around" with EPOCH
 
+Warning: the visualisation code currently does not work on Windows (using WSL Ubuntu). I suspect the issue arises from the Matplotlib backend. The code uses TkAgg, I suspect changing this to Qt5Agg may fix the issue. It's simple to fix: search for the script src/visualisation/diana_visualisation.py, search "TkAgg", and switch to matplotlib.use("Qt5Agg")  # instead of TkAgg
+
 ## Installation instruction
 1. I recommend using uv to manage the project.
 2. Clone this repo to a place where you find convenient (gh repo clone pnd531/Project_EPOCH).
