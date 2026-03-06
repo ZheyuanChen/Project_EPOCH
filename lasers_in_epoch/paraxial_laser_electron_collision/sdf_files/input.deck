@@ -1,0 +1,131 @@
+begin:control
+    nx = 2400
+    ny = 800
+    t_end = 10e-15
+    x_min = -30e-6
+    x_max = 30e-6
+    y_min = -10e-6
+    y_max = 10e-6
+    stdout_frequency = 10
+    smooth_currents = T
+end:control
+
+begin:boundaries
+    bc_x_min = simple_laser
+    bc_x_max = open
+    bc_y_min = open
+    bc_y_max = open
+end:boundaries
+
+begin:constant
+    n_0 = 1e25 # peak density of electrons in m^-3
+    drift_p = -2.6e-18 # 5Gev electrons movign towards left
+
+end:constant
+
+begin:constant
+    w_0 = 2.0e-6          # FWHM of laser intensity
+    I_peak_Wcm2 = 1.0e22     # 0.5 * eps0 * c * E_peak^2
+    las_lambda = 1.0e-6      # Laser wavelength 1 micron
+    foc_dist = 30.0e-6        # Boundary to focal point distance. Set to 30 microns
+end:constant
+
+begin:constant
+    las_k = 2.0 * pi / las_lambda    
+    w0 = w_0                 # Beam Waist
+    ray_rang = pi * w0^2 / las_lambda                    # Rayleigh range
+    w_boundary = w0 * sqrt(1.0 + (foc_dist/ray_rang)^2)  # Waist on boundary
+    I_boundary = I_peak_Wcm2 * (w0 / w_boundary)^2       # Intens. on boundary
+    rad_curve = foc_dist * (1.0 + (ray_rang/foc_dist)^2) # Boundary curv. rad.
+    gouy = atan(-foc_dist/rad_curve)                     # Boundary Gouy shift
+end:constant
+
+begin:laser
+    boundary = x_min
+    intensity_w_cm2 = I_boundary
+    lambda = las_lambda
+    phase = las_k * y^2 / (2.0 * rad_curve) - gouy
+    profile = gauss(y, 0, w_boundary)
+    t_profile = gauss(time, 40e-15, 15e-15)
+end:laser
+
+begin:qed
+    use_qed = T
+    produce_photons = T
+    photon_energy_min = 500 * kev
+    produce_pairs = T
+    photon_dynamics = T
+end:qed
+
+begin:species
+    name = Electron
+    
+    density = n_0 * gauss(x,29.5e-6,1e-6) * gauss(y,0,2e-6) * (x gt 28.0e-6) * (x lt 30.0e-6) * (y lt 3e-6) * (y gt -3e-6)
+          
+    temp_ev = 1.0e4
+    drift_x = drift_p
+    npart = 1500000
+    
+    identify:electron    
+end:species
+
+begin:species
+    name = Photon
+    npart = 0
+    identify:photon
+end:species
+
+begin:species
+    name = Positron
+    npart = 0
+    identify:positron
+end:species
+
+
+begin:output
+
+  name = normal
+  use_offset_grid = F
+
+  # number of timesteps between output dumps
+  dt_snapshot = t_end / 2
+
+  # Properties on grid
+  grid = always
+  ex = always
+  bz = always
+  jx = never
+  number_density = always + species
+  temperature = never + species
+  poynt_flux = never
+  distribution_functions = always
+  ekbar = always +species
+  absorption = always + species
+  total_energy_sum = always + species
+end:output
+
+begin:dist_fn
+
+  name = spatial_energy
+  ndims = 3
+  dumpmask = always
+
+  direction1 = dir_x
+  direction2 = dir_y
+  direction3 = dir_en
+
+  # range is ignored for spatial coordinates
+  # energy range in joules (20MeV, 10GeV)
+  range3 = (3.2e-12, 5*3.2e-10)
+
+  # resolution is ignored for spatial coordinates
+  resolution1 = 500
+  resolution2 = 500
+  resolution3 = 20  # This creates 20 "bins" or slices of energy
+
+
+  include_species:Photon
+  include_species:Electron
+
+end:dist_fn
+

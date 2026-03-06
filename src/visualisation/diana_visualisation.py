@@ -9,6 +9,7 @@ import h5py
 import matplotlib
 
 matplotlib.use("TkAgg")
+# matplotlib.use("QtAgg") # This may work on Windows
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 

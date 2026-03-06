@@ -50,3 +50,13 @@ begin:dist_fn
   include_species:Electron
 
 end:dist_fn
+
+begin:dist_fn
+
+  name = angle_energy
+  ndims = 2
+  dumpmask = always
+
+  direction1 = dir_xy_angle
+  direction2 = dir_en
+end:dist_fn
