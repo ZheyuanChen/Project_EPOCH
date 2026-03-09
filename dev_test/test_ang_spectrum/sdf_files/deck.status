@@ -1,4 +1,4 @@
- EPOCH2D v4.19.7   v4.19.7-0-g666daabe-dirty 1773070813.820            
+ EPOCH2D v4.19.7   v4.19.7-0-g666daabe-dirty 1773073295.249            
 
 Deck state:  1
 
@@ -193,8 +193,8 @@ Deck state:  1
  	Element direction2=dir_en handled OK
  	Element range1=(-pi, pi) handled OK
  	Element range2=(3.2e-13, 3.2e-11) handled OK
- 	Element resolution1=100 handled OK
- 	Element resolution2=100 handled OK
+ 	Element resolution1=400 handled OK
+ 	Element resolution2=400 handled OK
  	Element include_species=Photon handled OK
  	Element include_species=Electron handled OK
 
@@ -406,8 +406,8 @@ Deck state:  2
  	Element direction2=dir_en handled OK
  	Element range1=(-pi, pi) handled OK
  	Element range2=(3.2e-13, 3.2e-11) handled OK
- 	Element resolution1=100 handled OK
- 	Element resolution2=100 handled OK
+ 	Element resolution1=400 handled OK
+ 	Element resolution2=400 handled OK
  	Element include_species=Photon handled OK
  	Element include_species=Electron handled OK
 

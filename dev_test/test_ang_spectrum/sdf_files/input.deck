@@ -296,8 +296,8 @@ begin:dist_fn
 
 
   # resolution is ignored for spatial coordinates
-  resolution1 = 100
-  resolution2 = 100
+  resolution1 = 400
+  resolution2 = 400
 
   include_species:Photon
   include_species:Electron
