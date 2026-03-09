@@ -1,4 +1,4 @@
- EPOCH2D v4.19.7   v4.19.7-0-g666daabe-dirty 1773073295.249            
+ EPOCH2D v4.19.7   v4.19.7-0-g666daabe-dirty 1773074837.542            
 
 Deck state:  1
 
@@ -191,6 +191,7 @@ Deck state:  1
  	Element dumpmask=always handled OK
  	Element direction1=dir_xy_angle handled OK
  	Element direction2=dir_en handled OK
+ 	Element grid_type2=log handled OK
  	Element range1=(-pi, pi) handled OK
  	Element range2=(3.2e-13, 3.2e-11) handled OK
  	Element resolution1=400 handled OK
@@ -404,6 +405,12 @@ Deck state:  2
  	Element dumpmask=always handled OK
  	Element direction1=dir_xy_angle handled OK
  	Element direction2=dir_en handled OK
+
+ *** WARNING ***
+ Input deck line number 292
+ Unrecognised element "grid_type2" in input deck.
+ Code will continue to run, but behaviour is undefined
+
  	Element range1=(-pi, pi) handled OK
  	Element range2=(3.2e-13, 3.2e-11) handled OK
  	Element resolution1=400 handled OK
@@ -412,5 +419,9 @@ Deck state:  2
  	Element include_species=Electron handled OK
 
  Ending "dist_fn" block
+
+ *** WARNING ***
+ Input deck line number 306
+ Block "dist_fn" contains errors
 
  Initial conditions complete and valid.

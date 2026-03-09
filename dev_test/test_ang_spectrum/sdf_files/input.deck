@@ -289,7 +289,7 @@ begin:dist_fn
 
   direction1 = dir_xy_angle
   direction2 = dir_en
-
+  grid_type2 = log      # <-- This tells EPOCH to bin energy logarithmically
   # angle range in radians (-pi, pi)
   range1 = (-pi, pi)
   range2 = (3.2e-13, 3.2e-11)
