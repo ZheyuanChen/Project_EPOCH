@@ -165,7 +165,7 @@ def main():
                 ax.set_title(f'{sp_name} Energy Phase Space')
                 ax.set_xlabel('Energy (MeV)')
                 ax.set_ylabel('XY Angle (Degrees)')
-                ax.set_xscale('log')
+                #ax.set_xscale('log') # Log scale on energy can be misleading for the heatmap, especially with the new dynamic color scaling. Let's keep it linear for better visual interpretation.
                 
                 # Apply limits if parsed from deck
                 if emin_mev and emax_mev:
