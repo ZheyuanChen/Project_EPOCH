@@ -57,16 +57,16 @@ def main():
             
         # 1. Calculate Intensity vs X (W/m^2)
         # Instantaneous intensity: I = c * eps_0 * E^2
-        intensity_x = const.c * const.epsilon_0 * (Ey_1d ** 2)
+        intensity_x = const.c * const.epsilon_0 * (Ey_1d ** 2) # type: ignore
         # Convert to W/cm^2
         intensity_x_wcm2 = intensity_x / 1e4 
         
         # 2. Calculate Spectral Intensity vs Omega
         dx = x_nodes[1] - x_nodes[0]
-        n_points = len(Ey_1d)
+        n_points = len(Ey_1d) # type: ignore
         
         # Perform FFT on the Electric Field
-        Ey_fft = np.fft.fft(Ey_1d)
+        Ey_fft = np.fft.fft(Ey_1d) # type: ignore
         k_space = np.fft.fftfreq(n_points, d=dx) * 2 * np.pi
         
         # Map k to omega (omega = c * k)

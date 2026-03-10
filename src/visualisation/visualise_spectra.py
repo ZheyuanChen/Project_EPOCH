@@ -39,7 +39,7 @@ def main():
     ax.axis('off')
     
     # Setup the Slider
-    ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])
+    ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03]) # type: ignore
     max_frames = len(groups[first_group]) - 1
     slider = Slider(ax_slider, 'Time Frame', 0, max_frames, valinit=0, valstep=1, valfmt='%d')
 
