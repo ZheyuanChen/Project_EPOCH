@@ -32,18 +32,23 @@ VARIABLES = {
         "Derived_Average_Particle_Energy_Positron",
         "ekbar_positron.hdf5",
     ),
-    # below requires a distribution function to be named as "spatial_energy" in the input.deck which contains dir_x, dir_y, and dir_en. 
+    # below requires a distribution function to be named as "spatial_energy" in the input.deck which contains dir_x, dir_y, and dir_en.
     "dist_electron": ("dist_fn_spatial_energy_Electron", "dist_electron.hdf5"),
     "dist_photon": ("dist_fn_spatial_energy_Photon", "dist_photon.hdf5"),
     "dist_ion": ("dist_fn_spatial_energy_Ion", "dist_ion.hdf5"),
     "dist_positron": ("dist_fn_spatial_energy_Positron", "dist_positron.hdf5"),
-    
     # --- NEW: xy_Angle-Energy Distributions ---
     # This requires a distribution function named as "xy_energy" in the input.deck which contains dir_xy_angle and dir_en.
-    "dist_xy_en_electron": ("dist_fn_xy_energy_Electron", "dist_fn_xy_energy_Electron.hdf5"),
+    "dist_xy_en_electron": (
+        "dist_fn_xy_energy_Electron",
+        "dist_fn_xy_energy_Electron.hdf5",
+    ),
     "dist_xy_en_photon": ("dist_fn_xy_energy_Photon", "dist_fn_xy_energy_Photon.hdf5"),
     "dist_xy_en_ion": ("dist_fn_xy_energy_Ion", "dist_fn_xy_energy_Ion.hdf5"),
-    "dist_xy_en_positron": ("dist_fn_xy_energy_Positron", "dist_fn_xy_energy_Positron.hdf5"),
+    "dist_xy_en_positron": (
+        "dist_fn_xy_energy_Positron",
+        "dist_fn_xy_energy_Positron.hdf5",
+    ),
 }
 
 
@@ -102,8 +107,8 @@ def main():
 
     grid_dims = None
     dist_extents = None
-    dist_xy_extents = None # NEW: For Angle-Energy extents
-    dist_xy_dims = None    # NEW: For Angle-Energy resolutions
+    dist_xy_extents = None  # NEW: For Angle-Energy extents
+    dist_xy_dims = None  # NEW: For Angle-Energy resolutions
 
     for j in timesteps:
         fpath = os.path.join(args.input, f"{j:04d}.sdf")
@@ -144,7 +149,9 @@ def main():
                     dist_xy_extents = grid_obj.extents
                     # Dims are [resolution1, resolution2]
                     dist_xy_dims = grid_obj.dims
-                    print(f"  Found Angle-Energy Extents: {dist_xy_extents} | Dims: {dist_xy_dims}")
+                    print(
+                        f"  Found Angle-Energy Extents: {dist_xy_extents} | Dims: {dist_xy_dims}"
+                    )
                     break
 
         # Scalars (Extracting as pure floats using .item())
@@ -213,11 +220,11 @@ def main():
 
         if grid_dims is not None:
             f.attrs["grid_dims"] = grid_dims
-            
+
         # Old distribution metadata
         if dist_extents is not None:
             f.create_dataset("dist_extents", data=np.array(dist_extents))
-            
+
         # NEW: Angle-Energy metadata
         if dist_xy_extents is not None:
             f.create_dataset("dist_xy_energy_extents", data=np.array(dist_xy_extents))
