@@ -154,21 +154,11 @@ def main():
                 # --- NEW: Dynamic Range for Colorbar ---
                 # Set the minimum cutoff to 5 orders of magnitude below the peak.
                 # Adjust '1e5' to '1e4' or '1e6' if you want more or less contrast.
-                min_val = max_val / 1e5
+                min_val = max_val / 1e4
                 
-                # --- NEW: Generate Exact Bin Edges to Fix Log-Scale Distortion ---
-                n_angle, n_energy = z_energy_density.shape
-                
-                if emin_mev and emax_mev and angle_min_deg is not None and angle_max_deg is not None:
-                    # Create perfect geometric edges for energy, and linear edges for angle
-                    energy_edges = np.geomspace(emin_mev, emax_mev, n_energy + 1)
-                    angle_edges = np.linspace(angle_min_deg, angle_max_deg, n_angle + 1)
-                    X, Y = np.meshgrid(energy_edges, angle_edges)
-                    shading_type = 'flat' # 'flat' means drop exactly into our defined boxes
-                else:
-                    # Fallback if deck parsing failed
-                    X, Y = np.meshgrid(energy_grid_mev, angle_grid)
-                    shading_type = 'auto'
+
+                X, Y = np.meshgrid(energy_grid_mev, angle_grid)
+                shading_type = 'auto'
                 
                 # Plot the heatmap using the explicit edges
                 pcm = ax.pcolormesh(X, Y, z_energy_density, norm=LogNorm(vmin=min_val, vmax=max_val), cmap='viridis', shading=shading_type)
@@ -176,7 +166,7 @@ def main():
                 ax.set_title(f'{sp_name} Energy Phase Space')
                 ax.set_xlabel('Energy (MeV)')
                 ax.set_ylabel('XY Angle (Degrees)')
-                ax.set_xscale('log') # Log scale on energy can be misleading for the heatmap, especially with the new dynamic color scaling. Let's keep it linear for better visual interpretation.
+                #ax.set_xscale('log') # Log scale on energy can be misleading for the heatmap, especially with the new dynamic color scaling. Let's keep it linear for better visual interpretation.
                 
                 # Apply limits if parsed from deck
                 if emin_mev and emax_mev:
