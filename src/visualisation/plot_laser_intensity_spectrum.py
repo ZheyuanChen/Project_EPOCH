@@ -15,6 +15,7 @@ def main():
     input_dir = os.path.abspath(args.input_dir)
     parent_dir = os.path.dirname(input_dir)
     
+    # Put these in a dedicated subdirectory to play nice with the viewer
     output_dir = os.path.abspath(args.out) if args.out else os.path.join(parent_dir, 'laser_intensity_spectrum')
     os.makedirs(output_dir, exist_ok=True)
     print(f"Plots will be saved to: {output_dir}")
@@ -36,11 +37,12 @@ def main():
             
         Ey_data = data.Electric_Field_Ey.data
         
-        # Extract X grid coordinates
+        # --- FIXED: Yee Grid Extraction ---
         grid = data.Grid_Grid.data
         x_nodes = grid[0]
-        # Calculate cell centers for field variables (Yee grid staggered meshes)
+        # Calculate cell centers for field variables (averaging the edges)
         x_centers = 0.5 * (x_nodes[:-1] + x_nodes[1:])
+        x_centers_um = x_centers * 1e6
         
         # Handle 1D, 2D, or 3D data by taking a slice down the middle
         if Ey_data.ndim == 1:
@@ -56,12 +58,11 @@ def main():
         # 1. Calculate Intensity vs X (W/m^2)
         # Instantaneous intensity: I = c * eps_0 * E^2
         intensity_x = const.c * const.epsilon_0 * (Ey_1d ** 2)
-        # Convert to W/cm^2 (standard laser physics unit)
+        # Convert to W/cm^2
         intensity_x_wcm2 = intensity_x / 1e4 
-        x_centers_um = x_centers * 1e6
         
         # 2. Calculate Spectral Intensity vs Omega
-        dx = x_nodes[1] - x_nodes[0] # cell width remains the same
+        dx = x_nodes[1] - x_nodes[0]
         n_points = len(Ey_1d)
         
         # Perform FFT on the Electric Field
@@ -70,8 +71,6 @@ def main():
         
         # Map k to omega (omega = c * k)
         omega = np.abs(k_space * const.c)
-        
-        # Calculate Spectral Intensity (power spectrum)
         spectral_intensity = np.abs(Ey_fft)**2
         
         # Shift arrays to center the zero-frequency component
@@ -91,20 +90,22 @@ def main():
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
         
         # Spatial Plot
-        axes[0].plot(x_centers_um, intensity_x_wcm2, color='firebrick') # <-- Updated x array
+        axes[0].plot(x_centers_um, intensity_x_wcm2, color='firebrick')
         axes[0].set_title('Laser Intensity Profile')
-        axes[0].set_xlabel(r'Position x ($\mu$m)') # <-- Added 'r'
-        axes[0].set_ylabel(r'Intensity (W/cm$^2$)') # <-- Added 'r' just in case
+        # FIXED: Added 'r' before strings to handle LaTeX escapes
+        axes[0].set_xlabel(r'Position x ($\mu$m)')
+        axes[0].set_ylabel(r'Intensity (W/cm$^2$)')
         axes[0].grid(True, alpha=0.3)
         
         # Frequency Plot
         axes[1].plot(omega_pos / 1e15, spectrum_pos, color='navy')
         axes[1].set_title('Frequency Spectrum')
-        axes[1].set_xlabel(r'$\omega$ (PHz)') # <-- Added 'r'
+        # FIXED: Added 'r' before string
+        axes[1].set_xlabel(r'$\omega$ (PHz)')
         axes[1].set_ylabel('Normalized Spectral Intensity')
-        axes[1].set_xlim(0, 10) # Adjust this limit based on your laser frequency
+        axes[1].set_xlim(0, 10) 
         axes[1].grid(True, alpha=0.3)
-        axes[1].set_yscale('log') # Log scale helps see harmonics
+        axes[1].set_yscale('log') 
         axes[1].set_ylim(1e-6, 1.2)
         
         fig.suptitle(f'Laser Diagnostics at t = {sim_time_fs:.1f} fs', fontsize=14)

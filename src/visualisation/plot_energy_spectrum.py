@@ -2,7 +2,6 @@ import os
 import glob
 import argparse
 import re
-import numpy as np
 import matplotlib.pyplot as plt
 import sdf_helper as sh
 
@@ -123,7 +122,7 @@ def main():
         if hasattr(data, 'dist_fn_spatial_energy_Photon'):
             phot_data = data.dist_fn_spatial_energy_Photon.data
             spec_phot = phot_data.sum(axis=(0, 1))
-            plt.plot(en_grid_ev, spec_phot, label='Photons', color='red', linewidth=2, linestyle='--')
+            plt.plot(en_grid_ev, spec_phot, label='Photons', color='red', linewidth=2, linestyle='--') # type: ignore
 
         # Formatting (Log-Log scale, X-axis in eV)
         sim_time_fs = data.Header['time'] * 1e15
