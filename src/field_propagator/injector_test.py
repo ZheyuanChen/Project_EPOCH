@@ -26,7 +26,7 @@ if __name__ == "__main__":
     pulse_duration = 10e-15
     spot_size = 5e-6
     
-    # Input field at z=0
+    # Input field at z=0; electric field is normalised to 1 (maximum amplitude = 1).
     Ey_0 = np.exp(- (X**2 + Y**2) / spot_size**2) * \
            np.exp(- (T - Nt*dt/2)**2 / pulse_duration**2) * \
            np.cos(omega_L * T)
