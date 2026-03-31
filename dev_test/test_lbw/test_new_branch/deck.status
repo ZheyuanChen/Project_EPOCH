@@ -1,0 +1,305 @@
+ EPOCH2D v4.19.6   v4.19.6-78-g226dbc17-dirty 1774453096.168           
+
+Deck state:  1
+
+ Beginning "control" block
+
+ 	Element nx=500 handled OK
+ 	Element ny=500 handled OK
+ 	Element x_min=-10e-6 handled OK
+ 	Element x_max=10e-6 handled OK
+ 	Element y_min=-10e-6 handled OK
+ 	Element y_max=10e-6 handled OK
+ 	Element t_end=200e-15 handled OK
+ 	Element smooth_currents=T handled OK
+ 	Element stdout_frequency=100 handled OK
+ 	Element dt_multiplier=0.8 handled OK
+
+ Ending "control" block
+
+ Beginning "boundaries" block
+
+ 	Element bc_x_min=simple_laser handled OK
+ 	Element bc_x_max=simple_laser handled OK
+ 	Element bc_y_max=open handled OK
+ 	Element bc_y_min=open handled OK
+
+ Ending "boundaries" block
+
+ Beginning "qed" block
+
+ 	Element use_qed=T handled OK
+ 	Element produce_photons=T handled OK
+ 	Element photon_dynamics=T handled OK
+ 	Element produce_pairs=T handled OK
+ 	Element linear_breit_wheeler=T handled OK
+ 	Element LBW_differential_cross=T handled OK
+ 	Element photon_energy_min=50 * kev handled OK
+
+ Ending "qed" block
+
+ Beginning "collisions" block
+
+ 	Element use_collisions=T handled OK
+ 	Element coulomb_log=auto handled OK
+ 	Element collide=all handled OK
+
+ Ending "collisions" block
+
+ Beginning "species" block
+
+ 	Element name=electron handled OK
+ 	Element identify=electron handled OK
+ 	Element charge=-1.0 handled OK
+ 	Element mass=1.0 handled OK
+ 	Element npart=20 * 400 * 400 / 100 handled OK
+ 	Element density_min=0.0 handled OK
+ 	Element number_density=if(x gt -2e-6 and x lt 2e-6, 1e29, 0.0) handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=photon handled OK
+ 	Element identify=photon handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=pos_bw handled OK
+ 	Element mass=1.0 handled OK
+ 	Element charge=1.0 handled OK
+ 	Element identify=bw_positron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=ele_bw handled OK
+ 	Element mass=1.0 handled OK
+ 	Element charge=-1.0 handled OK
+ 	Element identify=bw_electron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=pos_lbw handled OK
+ 	Element charge=1.0 handled OK
+ 	Element mass=1.0 handled OK
+ 	Element identify=LBW_positron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=ele_lbw handled OK
+ 	Element charge=-1.0 handled OK
+ 	Element mass=1.0 handled OK
+ 	Element identify=LBW_electron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "laser" block
+
+ 	Element boundary=x_min handled OK
+ 	Element intensity_w_cm2=2e23 handled OK
+ 	Element lambda=0.8e-6 handled OK
+ 	Element pol_angle=0.0 handled OK
+ 	Element profile=gauss(y, 0, 4e-6) handled OK
+ 	Element t_profile=gauss(time, 40e-15, 20e-15) handled OK
+
+ Ending "laser" block
+
+ Beginning "laser" block
+
+ 	Element boundary=x_max handled OK
+ 	Element intensity_w_cm2=2e23 handled OK
+ 	Element lambda=0.8e-6 handled OK
+ 	Element pol_angle=0.0 handled OK
+ 	Element profile=gauss(y, 0, 4e-6) handled OK
+ 	Element t_profile=gauss(time, 40e-15, 20e-15) handled OK
+
+ Ending "laser" block
+
+ Beginning "output" block
+
+ 	Element name=normal handled OK
+ 	Element dt_snapshot=200e-15/60 handled OK
+ 	Element use_offset_grid=F handled OK
+ 	Element dt_average=1e-17 handled OK
+ 	Element grid=always handled OK
+ 	Element ey=T handled OK
+ 	Element bz=T handled OK
+ 	Element number_density=always + species handled OK
+ 	Element particles=always handled OK
+ 	Element px=always handled OK
+ 	Element py=always handled OK
+ 	Element pz=always handled OK
+ 	Element particle_weight=always handled OK
+
+ Ending "output" block
+
+Deck state:  2
+
+ Beginning "control" block
+
+ 	Element nx=500 handled OK
+ 	Element ny=500 handled OK
+ 	Element x_min=-10e-6 handled OK
+ 	Element x_max=10e-6 handled OK
+ 	Element y_min=-10e-6 handled OK
+ 	Element y_max=10e-6 handled OK
+ 	Element t_end=200e-15 handled OK
+ 	Element smooth_currents=T handled OK
+ 	Element stdout_frequency=100 handled OK
+ 	Element dt_multiplier=0.8 handled OK
+
+ Ending "control" block
+
+ Beginning "boundaries" block
+
+ 	Element bc_x_min=simple_laser handled OK
+ 	Element bc_x_max=simple_laser handled OK
+ 	Element bc_y_max=open handled OK
+ 	Element bc_y_min=open handled OK
+
+ Ending "boundaries" block
+
+ Beginning "qed" block
+
+ 	Element use_qed=T handled OK
+ 	Element produce_photons=T handled OK
+ 	Element photon_dynamics=T handled OK
+ 	Element produce_pairs=T handled OK
+ 	Element linear_breit_wheeler=T handled OK
+ 	Element LBW_differential_cross=T handled OK
+ 	Element photon_energy_min=50 * kev handled OK
+
+ Ending "qed" block
+
+ Beginning "collisions" block
+
+ 	Element use_collisions=T handled OK
+ 	Element coulomb_log=auto handled OK
+ 	Element collide=all handled OK
+
+ Ending "collisions" block
+
+ Beginning "species" block
+
+ 	Element name=electron handled OK
+ 	Element identify=electron handled OK
+ 	Element charge=-1.0 handled OK
+ 	Element mass=1.0 handled OK
+ 	Element npart=20 * 400 * 400 / 100 handled OK
+ 	Element density_min=0.0 handled OK
+ 	Element number_density=if(x gt -2e-6 and x lt 2e-6, 1e29, 0.0) handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=photon handled OK
+ 	Element identify=photon handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=pos_bw handled OK
+ 	Element mass=1.0 handled OK
+ 	Element charge=1.0 handled OK
+ 	Element identify=bw_positron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=ele_bw handled OK
+ 	Element mass=1.0 handled OK
+ 	Element charge=-1.0 handled OK
+ 	Element identify=bw_electron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=pos_lbw handled OK
+ 	Element charge=1.0 handled OK
+ 	Element mass=1.0 handled OK
+ 	Element identify=LBW_positron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "species" block
+
+ 	Element name=ele_lbw handled OK
+ 	Element charge=-1.0 handled OK
+ 	Element mass=1.0 handled OK
+ 	Element identify=LBW_electron handled OK
+ 	Element npart=0 handled OK
+ 	Element dump=T handled OK
+
+ Ending "species" block
+
+ Beginning "laser" block
+
+ 	Element boundary=x_min handled OK
+ 	Element intensity_w_cm2=2e23 handled OK
+ 	Element lambda=0.8e-6 handled OK
+ 	Element pol_angle=0.0 handled OK
+ 	Element profile=gauss(y, 0, 4e-6) handled OK
+ 	Element t_profile=gauss(time, 40e-15, 20e-15) handled OK
+
+ Ending "laser" block
+
+ Beginning "laser" block
+
+ 	Element boundary=x_max handled OK
+ 	Element intensity_w_cm2=2e23 handled OK
+ 	Element lambda=0.8e-6 handled OK
+ 	Element pol_angle=0.0 handled OK
+ 	Element profile=gauss(y, 0, 4e-6) handled OK
+ 	Element t_profile=gauss(time, 40e-15, 20e-15) handled OK
+
+ Ending "laser" block
+
+ Beginning "output" block
+
+ 	Element name=normal handled OK
+ 	Element dt_snapshot=200e-15/60 handled OK
+ 	Element use_offset_grid=F handled OK
+ 	Element dt_average=1e-17 handled OK
+ 	Element grid=always handled OK
+ 	Element ey=T handled OK
+ 	Element bz=T handled OK
+ 	Element number_density=always + species handled OK
+ 	Element particles=always handled OK
+ 	Element px=always handled OK
+ 	Element py=always handled OK
+ 	Element pz=always handled OK
+ 	Element particle_weight=always handled OK
+
+ Ending "output" block
+
+ Initial conditions complete and valid.

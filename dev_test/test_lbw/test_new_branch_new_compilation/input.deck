@@ -1,0 +1,135 @@
+begin:control
+   nx = 500
+   ny = 500
+   
+   x_min = -10e-6
+   x_max = 10e-6
+   y_min = -10e-6
+   y_max = 10e-6
+   
+   t_end = 200e-15
+   smooth_currents = T
+   stdout_frequency = 100
+   dt_multiplier = 0.8
+end:control
+
+begin:boundaries
+   bc_x_min = simple_laser
+   bc_x_max = simple_laser
+
+   bc_y_max = open
+   bc_y_min = open
+end:boundaries
+
+begin:qed
+   use_qed = T
+
+   produce_photons = T
+   
+   photon_dynamics = T
+   produce_pairs = T
+   
+   linear_breit_wheeler = T
+   LBW_differential_cross = T
+   
+   # amplify_LBW_factor = 1.0e3 # Use default (1)
+   
+   photon_energy_min = 50 * kev 
+end:qed
+
+begin:collisions
+  use_collisions = T
+  coulomb_log = auto
+  collide = all
+end:collisions
+
+begin:species
+   name = electron
+   identify:electron
+   charge = -1.0
+   mass = 1.0
+   npart = 20 * 400 * 400 / 100 
+   density_min = 0.0
+   number_density = if(x gt -2e-6 and x lt 2e-6, 1e29, 0.0)
+end:species
+
+begin:species
+   name = photon
+   identify:photon
+   npart = 0
+   dump = T
+end:species
+
+
+begin:species
+   name = pos_bw
+   mass = 1.0
+   charge = 1.0
+   identify:bw_positron
+   npart = 0
+   dump = T
+end:species
+
+begin:species
+   name = ele_bw
+   mass = 1.0
+   charge = -1.0
+   identify:bw_electron
+   npart = 0
+   dump = T
+end:species
+
+begin:species
+   name = pos_lbw
+   charge = 1.0
+   mass = 1.0
+   identify:LBW_positron
+   npart = 0
+   dump = T
+end:species
+
+begin:species
+   name = ele_lbw
+   charge = -1.0
+   mass = 1.0
+   identify:LBW_electron
+   npart = 0
+   dump = T
+end:species
+
+begin:laser
+   boundary = x_min
+   intensity_w_cm2 = 2e23 
+   lambda = 0.8e-6
+   pol_angle = 0.0
+   profile = gauss(y, 0, 4e-6)
+   t_profile = gauss(time, 40e-15, 20e-15)
+end:laser
+
+# ADDED: Second laser from the right side
+begin:laser
+   boundary = x_max
+   intensity_w_cm2 = 2e23
+   lambda = 0.8e-6
+   pol_angle = 0.0
+   profile = gauss(y, 0, 4e-6)
+   t_profile = gauss(time, 40e-15, 20e-15)
+end:laser
+
+begin:output
+   name = normal
+   dt_snapshot = 200e-15/60
+   use_offset_grid = F
+   dt_average = 1e-17
+   
+   grid = always
+   ey = T
+   bz = T
+   number_density = always + species
+
+   particles = always
+   px = always
+   py = always
+   pz = always
+   particle_weight = always
+end:output

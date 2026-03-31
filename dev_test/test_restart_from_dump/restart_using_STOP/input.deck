@@ -1,3 +1,5 @@
+# Put this line into the terminal: (sleep 30; touch /home/pnd531/Desktop/Project_EPOCH/dev_test/test_restart_from_dump/restart_using_STOP/STOP) & mpirun -np 4 ./bin/epoch2d
+
 begin:constant
 
   # This constant block specifies the electron number density of the target

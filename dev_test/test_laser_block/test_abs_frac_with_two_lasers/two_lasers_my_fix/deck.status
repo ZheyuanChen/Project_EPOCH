@@ -1,4 +1,4 @@
- EPOCH2D v4.20.0   v4.20.0-0-g0196b4d2-dirty 1774022114.822            
+ EPOCH2D v4.20.0   v4.20.0-0-g0196b4d2-dirty 1774948842.175            
 
 Deck state:  1
 
@@ -6,6 +6,7 @@ Deck state:  1
 
  	Element nel=1.0e22 handled OK
  	Element intens=1.0e22 handled OK
+ 	Element lambda=1e-6 handled OK
 
  Ending "constant" block
 
@@ -96,7 +97,7 @@ Deck state:  1
 
  Beginning "output_global" block
 
- 	Element force_final_to_be_restartable=T handled OK
+ 	Element force_final_to_be_restartable=F handled OK
 
  Ending "output_global" block
 
@@ -104,7 +105,7 @@ Deck state:  1
 
  	Element name=normal handled OK
  	Element use_offset_grid=F handled OK
- 	Element dt_snapshot=100.0e-15 / 100.0 handled OK
+ 	Element dt_snapshot=100.0e-15 / 50 handled OK
  	Element particles=never handled OK
  	Element px=never handled OK
  	Element py=never handled OK
@@ -117,24 +118,25 @@ Deck state:  1
  	Element particle_weight=never handled OK
  	Element species_id=never handled OK
  	Element grid=always handled OK
- 	Element ex=always handled OK
+ 	Element ex=never handled OK
  	Element ey=always handled OK
- 	Element ez=always handled OK
- 	Element bx=always handled OK
- 	Element by=always handled OK
- 	Element bz=always handled OK
- 	Element jx=always handled OK
- 	Element jy=always handled OK
+ 	Element ez=never handled OK
+ 	Element bx=never handled OK
+ 	Element by=never handled OK
+ 	Element bz=never handled OK
+ 	Element jx=never handled OK
+ 	Element jy=never handled OK
  	Element jz=never handled OK
- 	Element average_particle_energy=always + species handled OK
+ 	Element average_particle_energy=never handled OK
  	Element mass_density=never + species handled OK
  	Element charge_density=never handled OK
- 	Element number_density=always + species handled OK
- 	Element temperature=always + species handled OK
+ 	Element number_density=never + species handled OK
+ 	Element temperature=never + species handled OK
  	Element poynt_flux=always handled OK
- 	Element ekbar=always +species handled OK
- 	Element distribution_functions=always handled OK
- 	Element particle_probes=never handled OK
+ 	Element distribution_functions=never handled OK
+ 	Element ekbar=never +species handled OK
+ 	Element absorption=always handled OK
+ 	Element total_energy_sum=always + species handled OK
 
  Ending "output" block
 
@@ -164,20 +166,19 @@ Deck state:  1
 
  Ending "laser" block
 
- Beginning "dist_fn" block
+ Beginning "laser" block
 
- 	Element name=px_py handled OK
- 	Element ndims=2 handled OK
- 	Element dumpmask=always handled OK
- 	Element direction1=dir_px handled OK
- 	Element direction2=dir_py handled OK
- 	Element range1=(-1.5e-21, 1.5e-21) handled OK
- 	Element range2=(-1.5e-21, 1.5e-21) handled OK
- 	Element resolution1=200 handled OK
- 	Element resolution2=200 handled OK
- 	Element include_species=Photon handled OK
+ 	Element boundary=x_max handled OK
+ 	Element intensity=intens * 1.0e4 handled OK
+ 	Element omega=omega handled OK
+ 	Element polarisation=0.0 handled OK
+ 	Element phase=0.0 handled OK
+ 	Element t_profile=1 handled OK
+ 	Element t_start=0.0 handled OK
+ 	Element t_end=end handled OK
+ 	Element profile=gauss(y, 0, 2.0 * micron) handled OK
 
- Ending "dist_fn" block
+ Ending "laser" block
 
 Deck state:  2
 
@@ -185,6 +186,7 @@ Deck state:  2
 
  	Element nel=1.0e22 handled OK
  	Element intens=1.0e22 handled OK
+ 	Element lambda=1e-6 handled OK
 
  Ending "constant" block
 
@@ -275,7 +277,7 @@ Deck state:  2
 
  Beginning "output_global" block
 
- 	Element force_final_to_be_restartable=T handled OK
+ 	Element force_final_to_be_restartable=F handled OK
 
  Ending "output_global" block
 
@@ -283,7 +285,7 @@ Deck state:  2
 
  	Element name=normal handled OK
  	Element use_offset_grid=F handled OK
- 	Element dt_snapshot=100.0e-15 / 100.0 handled OK
+ 	Element dt_snapshot=100.0e-15 / 50 handled OK
  	Element particles=never handled OK
  	Element px=never handled OK
  	Element py=never handled OK
@@ -296,34 +298,35 @@ Deck state:  2
  	Element particle_weight=never handled OK
  	Element species_id=never handled OK
  	Element grid=always handled OK
- 	Element ex=always handled OK
+ 	Element ex=never handled OK
  	Element ey=always handled OK
- 	Element ez=always handled OK
- 	Element bx=always handled OK
- 	Element by=always handled OK
- 	Element bz=always handled OK
- 	Element jx=always handled OK
- 	Element jy=always handled OK
+ 	Element ez=never handled OK
+ 	Element bx=never handled OK
+ 	Element by=never handled OK
+ 	Element bz=never handled OK
+ 	Element jx=never handled OK
+ 	Element jy=never handled OK
  	Element jz=never handled OK
- 	Element average_particle_energy=always + species handled OK
+ 	Element average_particle_energy=never handled OK
  	Element mass_density=never + species handled OK
  	Element charge_density=never handled OK
- 	Element number_density=always + species handled OK
- 	Element temperature=always + species handled OK
+ 	Element number_density=never + species handled OK
+ 	Element temperature=never + species handled OK
  	Element poynt_flux=always handled OK
+ 	Element distribution_functions=never handled OK
 
  *** WARNING ***
- Input deck line number 214
+ Input deck line number 158
  Element "ekbar" is set multiple times in this deck.
  Code will continue using first value in deck
 
- 	Element distribution_functions=always handled OK
- 	Element particle_probes=never handled OK
+ 	Element absorption=always handled OK
+ 	Element total_energy_sum=always + species handled OK
 
  Ending "output" block
 
  *** WARNING ***
- Input deck line number 219
+ Input deck line number 164
  Block "output" contains errors
 
  Beginning "constant" block
@@ -352,19 +355,18 @@ Deck state:  2
 
  Ending "laser" block
 
- Beginning "dist_fn" block
+ Beginning "laser" block
 
- 	Element name=px_py handled OK
- 	Element ndims=2 handled OK
- 	Element dumpmask=always handled OK
- 	Element direction1=dir_px handled OK
- 	Element direction2=dir_py handled OK
- 	Element range1=(-1.5e-21, 1.5e-21) handled OK
- 	Element range2=(-1.5e-21, 1.5e-21) handled OK
- 	Element resolution1=200 handled OK
- 	Element resolution2=200 handled OK
- 	Element include_species=Photon handled OK
+ 	Element boundary=x_max handled OK
+ 	Element intensity=intens * 1.0e4 handled OK
+ 	Element omega=omega handled OK
+ 	Element polarisation=0.0 handled OK
+ 	Element phase=0.0 handled OK
+ 	Element t_profile=1 handled OK
+ 	Element t_start=0.0 handled OK
+ 	Element t_end=end handled OK
+ 	Element profile=gauss(y, 0, 2.0 * micron) handled OK
 
- Ending "dist_fn" block
+ Ending "laser" block
 
  Initial conditions complete and valid.

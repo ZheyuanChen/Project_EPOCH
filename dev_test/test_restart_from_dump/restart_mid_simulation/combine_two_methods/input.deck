@@ -1,3 +1,7 @@
+# Combine two methods. We allow for a restart output block but do not give a file prefix. 
+# Then, the restart dump will be written to the normal sdf files.
+# The caveat is that these sdf  files will take a lot of memories, and they cannot be separated from normal ones. 
+
 begin:constant
 
   # This constant block specifies the electron number density of the target
@@ -164,7 +168,7 @@ end:species
 
 begin:output_global
 
-  force_final_to_be_restartable = T
+  force_final_to_be_restartable = F
 
 end:output_global
 
@@ -172,13 +176,12 @@ end:output_global
 begin:output
 
   name = normal
-
   # If use_offset_grid is true then the code dumps a grid which displays
   # positions relative to the left hand edge of the window
   use_offset_grid = F
 
   # number of timesteps between output dumps
-  dt_snapshot = 100.0e-15 / 100.0
+  dt_snapshot = 2.5*femto
 
   # Properties at particle positions
   particles = never
@@ -219,6 +222,13 @@ begin:output
   
   particle_probes = never
 
+end:output
+
+begin:output
+  name =restart
+  
+  restartable=t
+  dt_snapshot = 25*femto
 end:output
 
 
@@ -287,15 +297,14 @@ begin:dist_fn
 
   direction1 = dir_xy_angle
   direction2 = dir_en
-  grid_type2 = log      # <-- This tells EPOCH to bin energy logarithmically
   # angle range in radians (-pi, pi)
   range1 = (-pi, pi)
   range2 = (3.2e-13, 3.2e-11)
 
 
   # resolution is ignored for spatial coordinates
-  resolution1 = 400
-  resolution2 = 400
+  resolution1 = 300
+  resolution2 = 300
 
   include_species:Photon
   include_species:Electron

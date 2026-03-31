@@ -1,0 +1,25 @@
+ EPOCH2D v4.20.0   v4.20.0-0-g0196b4d2-dirty 1774866189.613            
+
+ Loaded 524288 particles of species "Electron"
+ Loaded 524288 particles of species "Ion"
+Wrote normal ,           0000.sdf at time  0.1573E-15 and iteration       0
+Wrote normal ,           0001.sdf at time  0.2517E-14 and iteration       8
+Wrote normal ,           0002.sdf at time  0.5034E-14 and iteration      16
+Wrote normal ,           0003.sdf at time  0.7551E-14 and iteration      24
+Wrote normal ,           0004.sdf at time  0.1007E-13 and iteration      32
+Wrote normal ,           0005.sdf at time  0.1259E-13 and iteration      40
+Wrote normal ,           0006.sdf at time  0.1510E-13 and iteration      48
+Wrote normal ,           0007.sdf at time  0.1762E-13 and iteration      56
+Wrote normal ,           0008.sdf at time  0.2014E-13 and iteration      64
+Wrote normal ,           0009.sdf at time  0.2265E-13 and iteration      72
+Wrote normal ,           0010.sdf at time  0.2517E-13 and iteration      80
+Wrote normal ,           0011.sdf at time  0.2769E-13 and iteration      88
+Wrote normal ,           0012.sdf at time  0.3021E-13 and iteration      96
+Wrote normal ,           0013.sdf at time  0.3272E-13 and iteration     104
+Wrote normal ,           0014.sdf at time  0.3524E-13 and iteration     112
+Wrote normal ,           0015.sdf at time  0.3776E-13 and iteration     120
+Wrote normal ,           0016.sdf at time  0.4027E-13 and iteration     128
+Wrote normal ,           0017.sdf at time  0.4279E-13 and iteration     136
+Wrote normal ,           0018.sdf at time  0.4531E-13 and iteration     144
+Wrote normal ,           0019.sdf at time  0.4751E-13 and iteration     151
+Wrote restart,           0020.sdf at time  0.5003E-13 and iteration     159

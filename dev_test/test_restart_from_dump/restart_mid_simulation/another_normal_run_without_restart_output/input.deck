@@ -1,3 +1,6 @@
+# A normal run. We set an additional output block called restart. It outputs 4 restartable sdf files named restartxxxx.sdf as checkpoints.
+# If the simulation stops mid running, we can restart the simulation from any of the restart point.
+
 begin:constant
 
   # This constant block specifies the electron number density of the target
@@ -162,23 +165,21 @@ begin:species
 end:species
 
 
-begin:output_global
-
-  force_final_to_be_restartable = T
-
-end:output_global
 
 
 begin:output
 
-  name = normal
+  force_final_to_be_restartable = F
+  restart_dump_every = 20
 
   # If use_offset_grid is true then the code dumps a grid which displays
   # positions relative to the left hand edge of the window
   use_offset_grid = F
 
   # number of timesteps between output dumps
-  dt_snapshot = 100.0e-15 / 100.0
+  dt_snapshot = 2.5*femto
+
+
 
   # Properties at particle positions
   particles = never
@@ -220,6 +221,7 @@ begin:output
   particle_probes = never
 
 end:output
+
 
 
 begin:constant
@@ -287,15 +289,14 @@ begin:dist_fn
 
   direction1 = dir_xy_angle
   direction2 = dir_en
-  grid_type2 = log      # <-- This tells EPOCH to bin energy logarithmically
   # angle range in radians (-pi, pi)
   range1 = (-pi, pi)
   range2 = (3.2e-13, 3.2e-11)
 
 
   # resolution is ignored for spatial coordinates
-  resolution1 = 400
-  resolution2 = 400
+  resolution1 = 300
+  resolution2 = 300
 
   include_species:Photon
   include_species:Electron
