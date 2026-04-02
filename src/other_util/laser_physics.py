@@ -79,3 +79,77 @@ def print_chi_e():
     chi_e = calculate_chi_e(args.energy, args.intensity)
     
     print(f"Energy (MeV): {args.energy} | Intensity (W/cm^2): {args.intensity:.2e} | Calculated chi_e: {chi_e:.3f}")
+
+def calculate_critical_density(wavelength_in_microns):
+    '''
+    Calculate the critical plasma density for a given laser wavelength.
+    Returns the density in cm^-3.
+    '''
+    # Formula: n_c = 1.11e21 / lambda^2
+    n_c = 1.11e21 / (wavelength_in_microns ** 2)
+    return n_c
+
+def print_critical_density():
+    parser = argparse.ArgumentParser(description="Calculate the critical plasma density for a given laser wavelength.")
+    parser.add_argument(
+        "-w", "--wavelength", type=float, 
+        help="Laser wavelength in microns (µm) (default: 1.0)",
+        default=1.0
+    )
+    args = parser.parse_args()
+    
+    n_c = calculate_critical_density(args.wavelength)
+    
+    print(f"Wavelength (µm): {args.wavelength} | Critical Density (cm^-3): {n_c:.2e}")
+
+def calculate_ang_frequency_from_wavelength(wavelength_in_microns):
+    '''
+    Calculate the laser frequency from its wavelength.
+    Returns the frequency in Hz.
+    '''
+    # Convert wavelength from microns to meters
+    wavelength_in_meters = wavelength_in_microns * 1e-6
+    ang_frequency = 2 * np.pi * spc.c / wavelength_in_meters
+    return ang_frequency
+
+def print_ang_frequency():
+    parser = argparse.ArgumentParser(description="Calculate the angular frequency of a laser from its wavelength.")
+    parser.add_argument(
+        "-w", "--wavelength", type=float, 
+        help="Laser wavelength in microns (µm) (default: 1.0)",
+        default=1.0
+    )
+    args = parser.parse_args()
+    
+    ang_freq = calculate_ang_frequency_from_wavelength(args.wavelength)
+    
+    print(f"Wavelength (µm): {args.wavelength} | Angular Frequency (rad/s): {ang_freq:.3e}")
+
+def calculate_power(intensity_in_W_per_cm2, waist_size_in_microns):
+    '''
+    Calculate the laser power from its intensity and spot size.
+    Returns the power in Watts.
+    '''
+    # Convert waist size from microns to meters
+    waist_size_in_meters = waist_size_in_microns * 1e-6
+    area = np.pi * (waist_size_in_meters) ** 2
+    power = intensity_in_W_per_cm2 * 1e4 * area /2 # Convert W/cm^2 to W/m^2
+    return power
+
+def print_power():
+    parser = argparse.ArgumentParser(description="Calculate the laser power from its intensity and spot size.")
+    parser.add_argument(
+        "-i", "--intensity", type=float, 
+        help="Laser intensity in W/cm^2 (default: 1e22)",
+        default=1e22
+    )
+    parser.add_argument(
+        "-w0", "--waist", type=float, 
+        help="Laser waist size in microns (µm) (default: 5.0)",
+        default=5.0
+    )
+    args = parser.parse_args()
+    
+    power = calculate_power(args.intensity, args.waist)
+    
+    print(f"Intensity (W/cm^2): {args.intensity} | Waist Size (µm): {args.waist} | Calculated Power (W): {power:.3e}")

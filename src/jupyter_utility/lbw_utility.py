@@ -207,10 +207,3 @@ def plot_laser_abs_frac(ds, save_parent_path=None, save_name="laser_absorption_f
         print(f"Plot saved to {save_path}")
 
 
-def plot_absorption_rates(ds, lbw_pos_name=None, convert_units=False, data_var_suffix=None):
-    '''
-    Plot the absorption rates of lbw_positrons, lbw_electrons, electrons, and ions in the LBW dataset across time. This function calculates the absorption rate 
-    by comparing the number of positrons in the grid (from the density variable) to the number of positrons represented 
-    by the particle weights, and then plots this rate over time.
-    '''
-

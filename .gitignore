@@ -246,3 +246,6 @@ tmp/
 
 *.gif
 *.png
+
+/dev_test
+

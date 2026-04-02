@@ -1,0 +1,360 @@
+# This input deck is based on the one Nathan sent me.
+
+# The simulation is based on A single-laser scheme for observation of linear Breit–Wheeler electron–positron pair creation
+# The main specs are from Table 1 in that paper.
+
+# Below are the parameters to vary. Subject to change
+# TODO: review them and add them to the main body
+begin:constant
+  incident_angle = 0 # vary from 0 to 60 degrees?
+  intensity_W_cm2 = 2e22 (from 2e22 to 8e23? a_0 from ~100 to ~600?)
+  pulse_duration = 15e-15 (from 15fs to 100fs? The paper used 25fs) (FWHM)
+  
+  
+  # scale_length: is it a thing here for the structured target?
+
+end:constant
+
+begin:constant
+  
+  #n0 = 5.901e+28 # Atomic density 
+  #avg_charge_state = 40 # ionization #, n_e will be this multiplied by the density
+
+  # The paper specifies the ppcs, which are specified in species block.
+  # ppc = 168 # particles per cell
+  # e_to_n_ratio = 7 # ratio of electron macroparticles to ions and following calculations
+  # e_ppc = floor(ppc * e_to_n_ratio / (1 + e_to_n_ratio))
+  # n_ppc = floor(ppc / (1 + e_to_n_ratio))
+
+  # TODO: maybe change the starting temperature to 10% of ponderomotive potential?
+  starting_temp = 100000.0 # starting temperature in eV
+
+
+  #vacuum_thickness = 5 * micron # space between material and boundary
+
+  # laser parameters 
+  lambda0 = 0.8 * micron # laser wavelength
+  pulse_FWHM = 4 * micron # laser spot size. Set to be 4microns 
+  #pulse_energy = 400.0 
+  scale_length = 4e-6 # preplasma scale length
+  pulse_defocus = 0 # location in x of best focus. Focus at x=0?
+  pulse_tau = pulse_duration / 1.665 # pulse duration 
+
+  # some important calculations needed for later in the input deck (can be split in to another block but this was for the epydeck parser)
+  # TODO: check definitions
+  w_0 = pulse_FWHM / 1.665
+  #peak_power = pulse_energy / (pulse_tau * sqrt(pi))
+  #intens = peak_power / (1e4*pi*w_0^2)
+
+  intens = intensity_W_cm2*1e4 # in W/m^2
+  a0 = 8.5e-4 * sqrt(intens * lambda0^2) # TODO: Check units!
+  x_spot = (-x_min) + pulse_defocus
+  x_R = pi * w_0^2 / lambda0
+  RC = x_spot * (1.0 + (x_R/x_spot)^2)
+  w_bnd = w_0 * sqrt( 1.0 + (x_spot/x_R)^2)
+  gouy = atan(x_spot/x_R)
+end:constant
+
+begin:control
+
+  # 130 microns along x, 36 microns along y
+  # 40 cells per micron along x and y
+  # Assuming the pulse duration (FWHM) to be 30 fs, this corresponds to ~9 microns. So I am setting x_min = -10 microns 
+  nx = 5200
+  ny = 1440
+  x_min = -10 * micro
+  x_max = 120 * micro
+  y_min = -18 * micro
+  y_max = 18 * micro
+
+  # timing
+  nsteps = -1 # Run until the end
+
+  t_end = 6e-13 # end of sim. Need more consideration. For now, set it to 600fs as a placeholder.
+
+
+  dt_multiplier = 0.8 # courant condition factor
+
+  # other stuff
+  smooth_currents = T 
+  dlb_threshold = 0.8
+  use_random_seed = T
+  stdout_frequency = 100
+end:control
+
+
+# Not sure if bremsstrahlung is important for this simulation. Commented out.
+# Brems generation stuff
+#begin:bremsstrahlung
+#
+#  use_bremsstrahlung = T
+#  start_time = 0
+#  produce_photons = T
+#  photon_energy_min = 0.5 * mev
+#  photon_weight = 1.0
+#  photon_dynamics = T
+#  use_bremsstrahlung_recoil = T
+#  use_plasma_screening = F
+#  use_brem_scatter = T
+#  positron_brem = T
+#  use_bethe_heitler = T # may want to turn this off. 
+#  use_brem_trident = F
+#end:bremsstrahlung
+
+
+# QED processes stuff, LBW stuff will go here
+begin:qed
+  use_qed = T
+  qed_start_time = 0
+  
+  produce_photons = T
+  photon_energy_min = 50 * kev # The paper suggested that photons within the energy range 100keV-10MeV are the interesting ones. 
+  photon_dynamics = T
+  produce_pairs = T
+  linear_breit_wheeler = T # Important: turn LBW on
+  LBW_differential_cross = T # This is unnecessary as default = T. Nice to see here tho.
+   
+  # amplify_LBW_factor = 1.0e3 # Use default (1). Commented out here for reference/test only.
+
+  photon_sample_fraction = 1 # Not sure what this does.
+end:qed
+
+# keep these as is or Diana will smite you. 
+begin:boundaries
+  bc_x_min = simple_laser
+  bc_x_max = open
+  bc_y_min = open
+  bc_y_max = open
+
+  # The target is actually smaller than the simulation window. So y B.C. shouldn't really matter.
+  # Need to rethink about x_max B.C., but the main processes we look at happen within the target and hence simulation box. So, it probably also doesn't matter.
+end:boundaries
+
+# laser stuff, shouldn't need changing
+# Haven't modified it.
+# TODO: go through the laser initialisation. Check definitions.
+begin:laser
+  boundary = x_min
+  intensity_w_cm2 = intens * w_0 / w_bnd
+  lambda = lambda0
+  phase = 2.0 * pi/ lambda0 * y^2 / (2.0 * RC) - gouy
+  pol = 0 # The paper uses linearly polarised laser. Maybe stick to it.
+  profile = gauss(y,0,w_bnd)
+  t_profile = gauss(time, 3*pulse_tau, pulse_tau)
+  t_start = 0
+  t_end = 6*pulse_tau
+end:laser
+
+
+# Gold for this deck as it was for BH pair production, you will likely want to use Al or CH or similar
+# In the paper, they used "C6+, H+ ions" with bulk density 150mg cm^-3 and channel density 15mg cm^-3.
+# Need to hink about the composition. 
+# TODO: initialise the bulk and channel species
+begin:species
+  name = Hydrogen
+  atomic_number = 1 
+  mass = 1836
+  rho = 5.9e+28
+  nparticles_per_cell = 20 # The paper specifies that the ion ppc are 20 ppc.
+  charge = 1.0 
+  dump = F
+  immobile = F
+  temp_ev = starting_temp
+  minrho = 1
+  # Sim is filled up to 5 microns from boundaries, 0 is slab face, -ive x is exponential preplasma region, +ive x is slab of constant density.
+  number_density = if((x lt (x_min + vacuum_thickness)) or (x gt (x_max - vacuum_thickness)), 0, if(x lt 0.0, n0 * exp(x / (scale_length)), n0))
+  number_density = if((y lt (y_min + vacuum_thickness)) or (y gt (y_max - vacuum_thickness)), 0, number_density(Gold))
+end:species
+
+
+
+# for electrons
+begin:species
+  name = Electron
+  nparticles_per_cell = 40 # As specified in the paper
+  
+  # TODO: modify this
+  # The paper has n_e = 2.8 nc inside the channel and 28 in the bulk.
+  number_density = number_density(Gold) * avg_charge_state
+
+  temp_ev = starting_temp
+  dump = T
+  identify:electron
+end:species
+
+# species for QED processes
+# I initialised a new species for each processes. Not sure if this will slow things down. 
+
+# TODO: add BH species
+
+# No bremsstrahlung for now
+#begin:species
+#  name = Brems_Photon
+#  npart = 0
+#  dump = T
+#  identify:brem_photon
+#end:species
+
+begin:species
+  name = Photon
+  npart = 0
+  dump = T
+  identify:photon
+end:species
+
+begin:species
+   name = Positron_bw
+   mass = 1.0
+   charge = 1.0
+   identify:bw_positron
+   npart = 0
+   dump = T
+end:species
+
+begin:species
+   name = Electron_bw
+   mass = 1.0
+   charge = -1.0
+   identify:bw_electron
+   npart = 0
+   dump = T
+end:species
+
+begin:species
+   name = Positron_lbw
+   charge = 1.0
+   mass = 1.0
+   identify:LBW_positron
+   npart = 0
+   dump = T
+end:species
+
+begin:species
+   name = Electron_lbw
+   charge = -1.0
+   mass = 1.0
+   identify:LBW_electron
+   npart = 0
+   dump = T
+end:species
+
+# a bunch of diagnositcs. Remove and modify as you wish. 
+begin:dist_fn
+  name = x_px
+  ndims = 2
+  dumpmask = always
+  direction1 = dir_x
+  direction2 = dir_px
+  range1 = (1, 1)
+  range2 = (5e-22, 5e-19)
+  resolution1 = 1
+  resolution2 = 1000
+  include_species:Electron
+  include_species:Positron
+end:dist_fn
+
+begin:dist_fn 
+  name = y_py
+  ndims = 2
+  dumpmask = always
+  direction1 = dir_y 
+  direction2 = dir_py 
+  range1 = (1, 1)
+  range2 = (-5e-19, 5e-19)
+  resolution1 = 1
+  resolution2 = 2000
+  include_species:Electron
+  include_species:Positron
+end:dist_fn 
+
+begin:dist_fn
+  name = Photon_energies
+  ndims = 2
+  dumpmask = always
+  direction1 = dir_en
+  direction2 = dir_x
+  range1 = (1, 1)
+  range2 = (-35e-6, 0)
+  resolution1 = 200
+  restrict_y = (-10e-6, 10e-6)
+  include_species:Photon
+end:dist_fn
+
+
+# TODO: write two probes for forward and backward travelling positrons. Maybe for photons as well.
+# Also it's helpful to specify an energy range for them
+begin:probe
+  name = Positron_Probe
+  point = (x_max - vacuum_thickness, 0.0)
+  normal = (1, 0)
+  ek_min = 0.0
+  ek_max = -1.0
+  include_species:Positron
+  dumpmask = always
+end:probe
+
+
+
+# Probably don't need the final one to be restartable. So turn off to save memory.
+begin:output_global
+  force_final_to_be_restartable = F
+  force_first_to_be_restartable = F
+end:output_global
+
+
+# a lot of output stuff. again, change and modify as you wish. I wouldn't recommend using particle values but if you get it to work so that 
+# just the positrons are output they could work quite well.
+# TODO: think about what diagnostics are important
+begin:output
+
+  name = normal
+  use_offset_grid = F
+  dt_snapshot = 10e-15 
+
+  # Probably don't need normal restart dumps. I will use the STOP method. 
+  # Maybe it's worth to try a few ones to see how easy and how often the simulations tend to fail.
+  #full_dump_every = -1
+  #restart_dump_every = -1 
+  
+  # It might be useful to record momenta. 
+  # TODO: decide whether distribution functions are more helpful than the raw p_{xyz}. 
+  particles = never
+  px = never
+  py = never
+  pz = never
+  vx = never
+  vy = never
+  vz = never
+
+  # Variables that are NOT dumped. Keep for reference.
+  charge = never
+  mass = never
+  particle_energy = never
+  particle_weight = never
+  species_id = never
+  ez = never
+  bx = never
+  by = never
+  jx = never
+  jy = never
+  jz = never
+  ppc = never
+  ekbar = never
+  mass_density = never
+  charge_density = never
+  temperature = never
+
+  # Variables that are dumped.
+  grid = always
+  ex = always
+  ey = always
+  bz = always
+  number_density = always + species # It might be useful to use subset to restrict to certain species & areas.
+  
+  distribution_functions = always
+  particle_probes = always
+  
+  # Two nice ones.
+  total_energy_sum = always + species
+  absorption = always
+end:output
