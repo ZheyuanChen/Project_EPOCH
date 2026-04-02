@@ -1,20 +1,50 @@
 # Project_EPOCH
-My little "finding around" with EPOCH
+My little "finding around" with EPOCH.
 
-Warning: the visualisation code currently does not work on Windows (using WSL Ubuntu). I suspect the issue arises from the Matplotlib backend. The code uses TkAgg, I suspect changing this to Qt5Agg may fix the issue. It's simple to fix: search for the script src/visualisation/diana_visualisation.py, search "TkAgg", and switch to matplotlib.use("Qt5Agg")  # instead of TkAgg
+I have decided to switch to sdf-xarray instead of developing my own code for data analysis and visualisation. I have chosen to keep these old scripts and their documentation below, but they are not actively maintained.
+Instead, I have written some helper modules to smoothen the usage of sdf-xarray functionalities. 
+
+I am planning to write some tutorial scripts/notebooks in `/tutorial` folder. 
+
+### Suggestions
+1. If you are more comfortable using Jupyter notebook, you can host the kernel on Viking. This gives you the flexibility of using an interactive notebook interface while using the compute node of Viking. The documentation is very self-explainatory but not always works: https://vikingdocs.york.ac.uk/applications/jupyter.html. 
+
+2. 
 
 ## Installation instruction
 1. I recommend using uv to manage the project.
-2. Clone this repo to a place where you find convenient (gh repo clone pnd531/Project_EPOCH).
+2. Clone this repo to a place where you find convenient (gh repo clone ZheyuanChen/Project_EPOCH).
 3. Install it to use CLI command features (uv pip install -e . provided you are currently inside the parent folder)
 4. Enjoy! See key functions for what you can do.
 
-## Key functions
+### sdf-xarray "helper"
+TODO: write documentation
+
+
+### Other utilities
+A few useful functions have been created, and I have set some entry points. To call these functions, simply open a terminal and type the relevant entry points and parameters.
+
+`a0`: calculate `a_0` for a given intensity and wavelength. The default wavelength is `1μm` and the default intensity $10^{22}W/cm^2$. To input desired intensity and wavelength, use -i and -w flag. Example usage: `a0 -i 2e22 -w 0.8`.
+
+`chi_e`: calculate $χ_e$ given the laser intensity and electron beam energy in MeV. Example usage: `chi_e -i 3e22 -e 100`.
+
+`omega`: calculate the angular frequency of the laser for the given wavelength in microns. Example usage: `omega -w 0.8`.
+
+`P`: calculate the peak power of a gaussian beam for the given beam waist size and intensity. Example usage: `P -i 1e21 -w0 4`
+
+`nc`: calculate the critical density for the given wavelength. Example usage: `nc -w 0.8`.
+
+### Notes
+aaa
+
+## Key functions (Legacy, not actively maintained)
+Warning: the visualisation code currently does not work on Windows (using WSL Ubuntu). I suspect the issue arises from the Matplotlib backend. The code uses TkAgg, I suspect changing this to Qt5Agg may fix the issue. It's simple to fix: search for the script src/visualisation/diana_visualisation.py, search "TkAgg", and switch to matplotlib.use("Qt5Agg")  # instead of TkAgg
+
 1. Making gif from simulation sdf: the script is ./src/visualisation/save_2d_gif.py and the function is called save_2d_animation_to_gif(). I also set a CLI entry point for this called save_gif_2d. To use it, call save_gif_2d --dir "input_directory_where_sdf_files_are". The function collects all sdf files in the directory, asks you for the variable to be animated, and then makes a gif for you. The gif is saved in the current directory.
 2. Visualising simulation with manual control and multi-variable displaying: the script is ./src/visualisation/diana_visulisation_test.py and the function is run_cli. The entry point is called "vis". To use, type vis --dir "input_directory_hdf5_files". You can also decide the stride it uses (default 1) by typing --stride 2 (or 4). The more the strides, the lower the resolution but the faster the script. This is helpful when the data files are very large. WARNING: the script assumes your hdf5 files are in a directory like sth/hdf5_output (and you should put sth/hdf5_output as the input directory) AND there is an input.deck for your simulation under sth/sdf_files. The script needs to scan the input.deck for some info (and asks you for input if it doesn't find them).
 3. Converting sdf files to hdf5 files: the script is ./src/post_processing/converter.py and the entry point is called sdf_converter. To use, type sdf_converter --dir "input_directory_containing_sdf_files". In default, it saves the hdf5 files in sth/hdf5_output (your sdf files are in sth/sdf_files). 
 
-## Example usage
+## Example usage (Legacy, not actively maintained)
 Let's say you want to work with a simulation with this and that setup. Firstly, pick a directory to work with, say blabla/simulation/test_qed_rese. Create a directory called "sdf_files" inside test_qed_rese. Put input.deck inside sdf_files. Edit/create somewhere/epoch/epoch2d/USE_DATA_DIRECTORY and in the first (and the only) line write blabla/simulation/test_qed_rese/sdf_files. Then, run EPOCH simulation (mpirun -np 4 ./bin/epoch2d provided your pwd is epoch/epoch2d). The simulation sdfs should be dumped in sdf_files. 
 
 Now, you can play around with three functions mentioned above. Firstly, you can try making gif animations: in you command line type save_2d_gif --dir blabla/simulation/test_qed_rese/sdf_files This will call a Python script to do the animation and save them to a gif file in your pwd, so I recommend cd to qed_rese before calling this function. Also, after calling the function, the terminal will prompt you to input the variable you want to animate. Put one variable only! e.g. Electric_Field_Ez (case sensitive). 
@@ -34,8 +64,5 @@ Your directory structure should look like
 ```
 
 
-### Notes
-Some features are quite hard-wired, especially the structure of your directory. This isn't great. I will have to fix this in the future.
-This "software" does not track .sdf, .hdf5, and .gif files. So, when cloning the repo, one needs to run the epoch simulation and convert them to hdf5 files.
-Lasers must be included in the simulation to be used by these codes.
+
 
